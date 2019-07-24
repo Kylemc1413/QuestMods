@@ -1,0 +1,4 @@
+adb shell 
+logcat | grep MappingExtensions
+
+adb push libs/armeabi-v7a/libmappingextensions.so /sdcard/Android/data/com.beatgames.beatsaber/files/mods/

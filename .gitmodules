@@ -1,0 +1,3 @@
+[submodule "beatsaber-hook"]
+	path = beatsaber-hook
+	url = https://github.com/sc2ad/beatsaber-hook/

@@ -1,0 +1,25 @@
+{
+	"id": "MappingExtensions",
+	"name": "Mapping Extensions",
+	"author": "Kyle 1413",
+	"description": [
+		"This adds a host of new things you can do with your maps as a mapper, and allows you to play said maps as a player."
+	],
+	"category": "Other",
+	"gameVersion": "1.1.0",
+	"version": "0.9.0",
+	"links": {
+		"project-home": "https://github.com/Kylemc1413/QuestMods"
+	},
+	"platform": "Quest",
+	"components": [{
+			"Type": "HookMod",
+			"InstallAction": {
+				"InstallLibraryFile": "libmappingextensions.so"
+			},
+			"UninstallAction": {
+				"RemoveLibraryFile": "libmappingextensions.so"
+			}
+		}
+	]
+}
