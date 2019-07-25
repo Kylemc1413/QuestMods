@@ -13,24 +13,24 @@
 #include "../beatsaber-hook/shared/utils/utils.h"
 
 #undef log
-#define log(...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[MappingExtensions v0.9.0] " __VA_ARGS__)
+#define log(...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[MappingExtensions v0.10.0] " __VA_ARGS__)
 
-//#define line_y_pos_for_line_layer_offset 0x12FC1F0
-#define spawn_flying_score_offset 0x1323530
-#define get_note_offset_offset 0x12FD5E8
-#define note_rotation_offset 0x1349508
-#define jump_gravity_for_line_layer_offset 0x12FC214
+//#define line_y_pos_for_line_layer_offset 0x4F5AC0
+#define spawn_flying_score_offset 0x51CE00
+#define get_note_offset_offset 0x4F6EB8
+#define note_rotation_offset 0x5603B0
+#define jump_gravity_for_line_layer_offset 0x4F5AE4
 
-#define note_rotation_mirror_offset 0x134D81C
-#define note_mirror_offset 0x134D8CC
-#define obstacle_mirror_offset 0x13B1008
+#define note_rotation_mirror_offset 0x5646C4
+#define note_mirror_offset 0x564774
+#define obstacle_mirror_offset 0x9E3168
 
-#define get_beatmap_data_from_savedata_offset 0x12A9774
-#define mirror_transformed_data_offset 0x12A4ED4
-#define noarrows_transformed_data_offset 0x12A6BC4
-#define obstacles_bombs_transformed_data_offset 0x12A614C
+#define get_beatmap_data_from_savedata_offset 0x47FEBC
+#define mirror_transformed_data_offset 0x47B61C
+#define noarrows_transformed_data_offset 0x47D30C
+#define obstacles_bombs_transformed_data_offset 0x47C894
 
-#define obstacle_controller_init_offset 0x13B03CC
+#define obstacle_controller_init_offset 0x9E252C
 
 //extern "C" void * /* to be casted to Array */ il2cpp_array_new(Class *klass, int32_t len);
 //extern "C" Class * /* to be casted to Array */ il2cpp_class_from_type(void *Il2CppType_type);
