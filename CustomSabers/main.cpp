@@ -25,7 +25,8 @@ using il2cpp_utils::createcsstr;
 using il2cpp_utils::GetClassFromName;
 static const MethodInfo *(*get_method_from_name)(Il2CppClass *, const char *, int) = nullptr;
 static Il2CppObject *(*runtime_invoke)(const MethodInfo *, void *, void **, Il2CppException **) = nullptr;
-
+static const Il2CppType *(*class_get_type)(Il2CppClass *) = nullptr;
+static Il2CppObject *(*type_get_object)(const Il2CppType *) = nullptr;
 template <class T>
 struct List : Il2CppObject
 {
@@ -179,7 +180,7 @@ MAKE_HOOK(solo_free_play, 0x4DBD74, void, void *self, bool firstActivation, int 
         assetBundleFromAsync = get_method_from_name(assetBundleCreateRequestClass, "get_assetBundle", 0);
 
     if (loadAssetAsync == nullptr)
-        loadAssetAsync = get_method_from_name(assetBundleClass, "LoadAssetAsync", 1);
+        loadAssetAsync = get_method_from_name(assetBundleClass, "LoadAssetAsync", 2);
 
     if (getAsset == nullptr)
         getAsset = get_method_from_name(assetBundleRequestClass, "get_asset", 0);
@@ -202,20 +203,21 @@ MAKE_HOOK(solo_free_play, 0x4DBD74, void, void *self, bool firstActivation, int 
     void *assetBundle = runtime_invoke(assetBundleFromAsync, asyncBundle, nullptr, &exception);
     //   log("Grabbed Asset bundle");
     cs_string *assetPath = createcsstr("_customsaber");
-    void *assetPathParams[] = {assetPath};
+    void *assetPathParams[] = {assetPath, type_get_object(class_get_type(gameObjectClass))};
     void *assetAsync = runtime_invoke(loadAssetAsync, assetBundle, assetPathParams, &exception);
     //    log("Grabbed Asset Async Request");
     void *customSaberObject = runtime_invoke(getAsset, assetAsync, nullptr, &exception);
     log("Grabbed Asset Object");
     //Attempt to Instaniate GameObject to 0,0,0
-    Vector3 zero{zero.x = 0, zero.y = 4, zero.z = 0};
+    Vector3 zero{zero.x = 0, zero.y = 0, zero.z = 0};
     Quaternion rot = ToQuaternion(0, 0, 0);
     cs_string *parentName = createcsstr("MainScreen");
     void *parentFindParams[] = {parentName};
     void *parentObj = runtime_invoke(findGameObject, nullptr, parentFindParams, &exception);
+
     log("Called Find for Parent Object");
     void *instantiateParams[] = {customSaberObject};
-    void* instantiatedObject = runtime_invoke(objectInstantiate, nullptr, instantiateParams, &exception);
+    void *instantiatedObject = runtime_invoke(objectInstantiate, nullptr, instantiateParams, &exception);
     log("Instantiated Asset Object");
 
     log("Ended solo_free_play_hook");
@@ -231,11 +233,10 @@ __attribute__((constructor)) void lib_main()
     if (get_method_from_name == nullptr || runtime_invoke == nullptr)
     {
         void *imagehandle = dlopen("/data/app/com.beatgames.beatsaber-1/lib/arm/libil2cpp.so", 1);
-        if (get_method_from_name == nullptr)
-
-            *(void **)(&get_method_from_name) = dlsym(imagehandle, "il2cpp_class_get_method_from_name");
-        if (runtime_invoke == nullptr)
-            *(void **)(&runtime_invoke) = dlsym(imagehandle, "il2cpp_runtime_invoke");
+        *(void **)(&get_method_from_name) = dlsym(imagehandle, "il2cpp_class_get_method_from_name");
+        *(void **)(&runtime_invoke) = dlsym(imagehandle, "il2cpp_runtime_invoke");
+        *(void **)(&class_get_type) = dlsym(imagehandle, "il2cpp_class_get_type");
+        *(void **)(&type_get_object) = dlsym(imagehandle, "il2cpp_type_get_object");
         dlclose(imagehandle);
     }
     log("Got il2cpp api functions for Custom Sabers.");
