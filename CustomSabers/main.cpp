@@ -15,7 +15,17 @@
 #undef log
 #define log(...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[CustomSabers v0.0.1] " __VA_ARGS__)
 
+//Hook offsets
+#define set_active_scene_offset 0xD902B4
+
 using il2cpp_utils::GetClassFromName;
+void dumpBytes(int before, int after, void* loc) {
+    for (int i = -before; i < after; i++) {
+        int val = *(int*)((int)loc + i);
+        log("4 Bytes at: %p has hex value: %08x", (void*)((int)loc + i), val);
+    }
+}
+
 template <class T>
 struct List : Object
 {
@@ -56,6 +66,10 @@ struct Bounds : Object
     Vector3 extents;
 };
 
+struct Scene : Object
+{
+    int handle;
+};
 
 Quaternion ToQuaternion(float pitch, float yaw, float roll) // yaw (Z), pitch (Y), roll (X)
 {
@@ -101,11 +115,64 @@ float VectorMagnitude(Vector3 vector)
 {
     return sqrtf(vector.x * vector.x + vector.y * vector.y + vector.z * vector.z);
 }
+static Il2CppClass *sceneClass;
+static const MethodInfo *sceneNameMethodInfo;
+static const MethodInfo *(*get_methods)(Il2CppClass *, void **) = nullptr;
+static Il2CppObject *(*runtime_invoke)(const MethodInfo *, void *, void **, Il2CppException **) = nullptr;
+
+MAKE_HOOK(set_active_scene, set_active_scene_offset, bool, int scene)
+{
+    log("Called set_active_scene hook");
+
+ //   bool result = set_active_scene(scene);
+ //   log("Result %s", result ? "true" : "false");
+ 
+    if (sceneClass == nullptr)
+        sceneClass = GetClassFromName("UnityEngine.SceneManagement", "Scene");
+    if (get_methods == nullptr || runtime_invoke == nullptr)
+    {
+        void *imagehandle = dlopen("/data/app/com.beatgames.beatsaber-1/lib/arm/libil2cpp.so", 1);
+        if (get_methods == nullptr)
+            *(void **)(&get_methods) = dlsym(imagehandle, "il2cpp_class_get_methods");
+        if (runtime_invoke == nullptr)
+            *(void **)(&runtime_invoke) = dlsym(imagehandle, "il2cpp_runtime_invoke");
+        dlclose(imagehandle);
+    }
+  void *iter = nullptr;
+    MethodInfo const *m;
+    if (sceneNameMethodInfo == nullptr)
+        while ((m = get_methods(sceneClass, &iter)) != nullptr)
+        {
+            if (std::strncmp(m->name, "GetNameInternal", 16) == 0)
+            {
+                //          log("Stretchable Obstacle Method: %s", m->name);
+                sceneNameMethodInfo = m;
+                //       log("SetSizeMethod: %i", SetSizeMethodInfo->parameters_count);
+                break;
+            }
+        }
+    Il2CppException *exception = nullptr;
+  //  log("Scene Name Method params: %i", sceneNameMethodInfo->parameters_count);
+  //      log("Scene Name Method name: %s", sceneNameMethodInfo->name);
+        
+
+    void*  params[] = {&scene};
+  //  public string get_name();
+    auto result2 = runtime_invoke(sceneNameMethodInfo, nullptr, params, &exception);
+    cs_string * csName = reinterpret_cast<cs_string*>(result2);
+    char sceneName[100];
+    csstrtostr(csName, sceneName);
+    log("Scene Name: %s", sceneName);
+  //  log("Scene Name: %s", reinterpret_cast<const char*>(result));
+
+        log("End set_active_scene hook");
+    return set_active_scene(scene);
+}
 
 __attribute__((constructor)) void lib_main()
 {
 
     log("Installing Custom Sabers Hooks!");
-
+    INSTALL_HOOK(set_active_scene);
     log("Installed Custom Sabers Hooks!");
 }
