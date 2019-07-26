@@ -122,6 +122,7 @@ static Il2CppClass *assetBundleCreateRequestClass;
 static Il2CppClass *assetBundleRequestClass;
 static Il2CppClass *gameObjectClass;
 static Il2CppClass *objectClass;
+static Il2CppClass *transformClass;
 static const MethodInfo *sceneNameMethodInfo;
 static const MethodInfo *assetBundleFromFileAsync;
 static const MethodInfo *assetBundleFromAsync;
@@ -129,6 +130,18 @@ static const MethodInfo *loadAssetAsync;
 static const MethodInfo *getAsset;
 static const MethodInfo *objectInstantiate;
 static const MethodInfo *findGameObject;
+static const MethodInfo *getGameObjectTransform;
+static const MethodInfo *findTransform;
+static const MethodInfo *transformPosGet;
+static const MethodInfo *transformLocalPosGet;
+static const MethodInfo *transformPosSet;
+static const MethodInfo *transformLocalPosSet;
+static const MethodInfo *transformEulerSet;
+static const MethodInfo *transformEulerGet;
+static const MethodInfo *transformLocalEulerSet;
+static const MethodInfo *transformLocalEulerGet;
+static const MethodInfo *transformParentGet;
+static const MethodInfo *transformParentSet;
 MAKE_HOOK(set_active_scene, set_active_scene_offset, bool, int scene)
 {
     log("Called set_active_scene hook");
@@ -172,7 +185,8 @@ MAKE_HOOK(solo_free_play, 0x4DBD74, void, void *self, bool firstActivation, int 
         gameObjectClass = GetClassFromName("UnityEngine", "GameObject");
     if (objectClass == nullptr)
         objectClass = GetClassFromName("UnityEngine", "Object");
-
+    if (transformClass == nullptr)
+        transformClass = GetClassFromName("UnityEngine", "Transform");
     if (assetBundleFromFileAsync == nullptr)
         assetBundleFromFileAsync = get_method_from_name(assetBundleClass, "LoadFromFileAsync", 1);
 
@@ -190,6 +204,31 @@ MAKE_HOOK(solo_free_play, 0x4DBD74, void, void *self, bool firstActivation, int 
 
     if (findGameObject == nullptr)
         findGameObject = get_method_from_name(gameObjectClass, "Find", 1);
+    
+        if (getGameObjectTransform == nullptr)
+        getGameObjectTransform = get_method_from_name(gameObjectClass, "get_transform", 0);
+            if (findTransform == nullptr)
+        findTransform = get_method_from_name(transformClass, "Find", 1);
+            if (transformPosGet == nullptr)
+        transformPosGet = get_method_from_name(transformClass, "get_position", 0);
+            if (transformPosSet == nullptr)
+        transformPosSet = get_method_from_name(transformClass, "set_position", 1);
+            if (transformLocalPosGet == nullptr)
+        transformLocalPosGet = get_method_from_name(transformClass, "get_localPosition", 0);
+            if (transformLocalPosSet == nullptr)
+        transformLocalPosSet = get_method_from_name(transformClass, "set_localPosition", 1);
+            if (transformEulerGet == nullptr)
+        transformEulerGet = get_method_from_name(transformClass, "get_eulerAngles", 0);
+            if (transformEulerSet == nullptr)
+        transformEulerSet = get_method_from_name(transformClass, "set_eulerAngles", 1);
+            if (transformLocalEulerGet == nullptr)
+        transformLocalEulerGet = get_method_from_name(transformClass, "get_localEulerAngles", 0);
+            if (transformLocalEulerSet == nullptr)
+        transformLocalEulerSet = get_method_from_name(transformClass, "set_localEulerAngles", 1);
+            if (transformParentGet == nullptr)
+        transformParentGet = get_method_from_name(transformClass, "get_parent", 0);
+            if (transformParentSet == nullptr)
+        transformParentSet = get_method_from_name(transformClass, "set_parent", 1);
 
     Il2CppException *exception = nullptr;
     //Attempt to load assetbundle
@@ -214,11 +253,27 @@ MAKE_HOOK(solo_free_play, 0x4DBD74, void, void *self, bool firstActivation, int 
     cs_string *parentName = createcsstr("MainScreen");
     void *parentFindParams[] = {parentName};
     void *parentObj = runtime_invoke(findGameObject, nullptr, parentFindParams, &exception);
-
     log("Called Find for Parent Object");
+    void* parentTransform = runtime_invoke(getGameObjectTransform, parentObj, nullptr, &exception);
+    log("Get Parent Transform");
     void *instantiateParams[] = {customSaberObject};
     void *instantiatedObject = runtime_invoke(objectInstantiate, nullptr, instantiateParams, &exception);
     log("Instantiated Asset Object");
+
+    void* saberObjTransform = runtime_invoke(getGameObjectTransform, instantiatedObject, nullptr, &exception);
+    log("Get GameObject Transform");
+    cs_string *rightSaberName = createcsstr("RightSaber");
+    void *rightParams[] = {rightSaberName};
+    void* rightSaberTransform = runtime_invoke(findTransform, saberObjTransform, rightParams, &exception);
+    log("Find RightSaber Transform");
+    runtime_invoke(transformParentSet, rightSaberTransform, &parentTransform, &exception);
+    log("Set RightSaber Parent");
+    void* parentPos = runtime_invoke(transformPosGet, parentTransform, nullptr, &exception);
+    log("Get Parent Position");
+    Vector3 *ParentPos = reinterpret_cast<Vector3*>(parentPos);
+    log("Parent Position: %f %f %f", ParentPos->x, ParentPos->y, ParentPos->z);
+    runtime_invoke(transformPosSet, rightSaberTransform, &parentPos, &exception);
+    log("Set RightSaber Position");
 
     log("Ended solo_free_play_hook");
 }
