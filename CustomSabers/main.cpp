@@ -12,7 +12,7 @@
 #include "../beatsaber-hook/shared/inline-hook/inlineHook.h"
 #include "../beatsaber-hook/shared/utils/utils.h"
 #include "../beatsaber-hook/shared/libil2cpp/il2cpp-api.h"
-
+#include "../beatsaber-hook/shared/libil2cpp/il2cpp-object-internals.h"
 //#undef log
 //#define log(...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[CustomSabers v0.0.1] " __VA_ARGS__)
 
@@ -118,10 +118,16 @@ float VectorMagnitude(Vector3 vector)
 static Il2CppClass *sceneClass;
 static Il2CppClass *assetBundleClass;
 static Il2CppClass *assetBundleCreateRequestClass;
+static Il2CppClass *assetBundleRequestClass;
+static Il2CppClass *gameObjectClass;
+static Il2CppClass *objectClass;
 static const MethodInfo *sceneNameMethodInfo;
 static const MethodInfo *assetBundleFromFileAsync;
 static const MethodInfo *assetBundleFromAsync;
 static const MethodInfo *loadAssetAsync;
+static const MethodInfo *getAsset;
+static const MethodInfo *objectInstantiate;
+static const MethodInfo *findGameObject;
 MAKE_HOOK(set_active_scene, set_active_scene_offset, bool, int scene)
 {
     log("Called set_active_scene hook");
@@ -131,9 +137,8 @@ MAKE_HOOK(set_active_scene, set_active_scene_offset, bool, int scene)
         sceneClass = GetClassFromName("UnityEngine.SceneManagement", "Scene");
     //Get scene name method
     if (sceneNameMethodInfo == nullptr)
-    {
         sceneNameMethodInfo = get_method_from_name(sceneClass, "GetNameInternal", 1);
-    }
+
     //Get Scene Name
 
     Il2CppException *exception = nullptr;
@@ -146,42 +151,81 @@ MAKE_HOOK(set_active_scene, set_active_scene_offset, bool, int scene)
     if (std::strncmp(sceneName, "MenuCore", 8) == 0)
     {
         log("MenuCore Scene");
-        if (assetBundleClass == nullptr)
-            assetBundleClass = GetClassFromName("UnityEngine", "AssetBundle");
-        if (assetBundleCreateRequestClass == nullptr)
-            assetBundleCreateRequestClass = GetClassFromName("UnityEngine", "AssetBundleCreateRequest");
-
-        if (assetBundleFromFileAsync == nullptr)
-            assetBundleFromFileAsync = get_method_from_name(assetBundleClass, "LoadFromFileAsync", 1);
-
-        if (assetBundleFromAsync == nullptr)
-            assetBundleFromAsync = get_method_from_name(assetBundleCreateRequestClass, "get_AssetBundle", 0);
-
-        if (loadAssetAsync == nullptr)
-            loadAssetAsync = get_method_from_name(assetBundleClass, "LoadAssetAsync", 3);
-
-        //Attempt to load assetbundle
-        //void* static LoadFromFileAsync(fileName): 0x1278B44
-        //void* get_AssetBundle(asyncBundle): 0x1278D60
-        //void* LoadAssetAsync(bundle, type, name_from_bundle): 0x5CD740
-        cs_string *assetFilePath = createcsstr("/sdcard/Android/data/com.beatgames.beatsaber/files/sabers/tesla3.saber");
-        void *fromFileParams[] = {assetFilePath};
-        void *asyncBundle = runtime_invoke(assetBundleFromFileAsync, nullptr, fromFileParams, &exception);
-                log("Grabbed Async bundle");
-   
-   //     void *assetBundle = runtime_invoke(assetBundleFromAsync, asyncBundle, nullptr, &exception);
-   //     log("Grabbed Asset bundle");
-      //  void *assetAsync = runtime_invoke(loadAssetAsync, assetBundle, )
     }
     log("End set_active_scene hook");
     return result;
 }
 
+MAKE_HOOK(solo_free_play, 0x4DBD74, void, void *self, bool firstActivation, int activationType)
+{
+    log("Called solo_free_play_hook");
+
+    solo_free_play(self, firstActivation, activationType);
+    if (assetBundleClass == nullptr)
+        assetBundleClass = GetClassFromName("UnityEngine", "AssetBundle");
+    if (assetBundleCreateRequestClass == nullptr)
+        assetBundleCreateRequestClass = GetClassFromName("UnityEngine", "AssetBundleCreateRequest");
+    if (assetBundleRequestClass == nullptr)
+        assetBundleRequestClass = GetClassFromName("UnityEngine", "AssetBundleRequest");
+    if (gameObjectClass == nullptr)
+        gameObjectClass = GetClassFromName("UnityEngine", "GameObject");
+    if (objectClass == nullptr)
+        objectClass = GetClassFromName("UnityEngine", "Object");
+
+    if (assetBundleFromFileAsync == nullptr)
+        assetBundleFromFileAsync = get_method_from_name(assetBundleClass, "LoadFromFileAsync", 1);
+
+    if (assetBundleFromAsync == nullptr)
+        assetBundleFromAsync = get_method_from_name(assetBundleCreateRequestClass, "get_assetBundle", 0);
+
+    if (loadAssetAsync == nullptr)
+        loadAssetAsync = get_method_from_name(assetBundleClass, "LoadAssetAsync", 1);
+
+    if (getAsset == nullptr)
+        getAsset = get_method_from_name(assetBundleRequestClass, "get_asset", 0);
+
+    if (objectInstantiate == nullptr)
+        objectInstantiate = get_method_from_name(objectClass, "Instantiate", 1);
+
+    if (findGameObject == nullptr)
+        findGameObject = get_method_from_name(gameObjectClass, "Find", 1);
+
+    Il2CppException *exception = nullptr;
+    //Attempt to load assetbundle
+    //void* static LoadFromFileAsync(fileName): 0x1278B44
+    //void* get_AssetBundle(asyncBundle): 0x1278D60
+    //void* LoadAssetAsync(bundle, type, name_from_bundle): 0x5CD740
+    cs_string *assetFilePath = createcsstr("/sdcard/Android/data/com.beatgames.beatsaber/files/sabers/tesla3.saber");
+    void *fromFileParams[] = {assetFilePath};
+    void *asyncBundle = runtime_invoke(assetBundleFromFileAsync, nullptr, fromFileParams, &exception);
+    //   log("Grabbed Async bundle request");
+    void *assetBundle = runtime_invoke(assetBundleFromAsync, asyncBundle, nullptr, &exception);
+    //   log("Grabbed Asset bundle");
+    cs_string *assetPath = createcsstr("_customsaber");
+    void *assetPathParams[] = {assetPath};
+    void *assetAsync = runtime_invoke(loadAssetAsync, assetBundle, assetPathParams, &exception);
+    //    log("Grabbed Asset Async Request");
+    void *customSaberObject = runtime_invoke(getAsset, assetAsync, nullptr, &exception);
+    log("Grabbed Asset Object");
+    //Attempt to Instaniate GameObject to 0,0,0
+    Vector3 zero{zero.x = 0, zero.y = 4, zero.z = 0};
+    Quaternion rot = ToQuaternion(0, 0, 0);
+    cs_string *parentName = createcsstr("MainScreen");
+    void *parentFindParams[] = {parentName};
+    void *parentObj = runtime_invoke(findGameObject, nullptr, parentFindParams, &exception);
+    log("Called Find for Parent Object");
+    void *instantiateParams[] = {customSaberObject};
+    void* instantiatedObject = runtime_invoke(objectInstantiate, nullptr, instantiateParams, &exception);
+    log("Instantiated Asset Object");
+
+    log("Ended solo_free_play_hook");
+}
 __attribute__((constructor)) void lib_main()
 {
 
     log("Installing Custom Sabers Hooks!");
     INSTALL_HOOK(set_active_scene);
+    INSTALL_HOOK(solo_free_play);
     log("Installed Custom Sabers Hooks!");
     log("Getting il2cpp api functions for Custom Sabers.");
     if (get_method_from_name == nullptr || runtime_invoke == nullptr)
