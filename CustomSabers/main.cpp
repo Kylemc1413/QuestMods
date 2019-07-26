@@ -11,23 +11,23 @@
 #include <map>
 #include "../beatsaber-hook/shared/inline-hook/inlineHook.h"
 #include "../beatsaber-hook/shared/utils/utils.h"
+#include "../beatsaber-hook/shared/libil2cpp/il2cpp-api.h"
 
-#undef log
-#define log(...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[CustomSabers v0.0.1] " __VA_ARGS__)
+//#undef log
+//#define log(...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[CustomSabers v0.0.1] " __VA_ARGS__)
 
 //Hook offsets
 #define set_active_scene_offset 0xD902B4
+#define MOD_ID "CustomSabers"
+#define VERSION "0.0.1"
 
+using il2cpp_utils::createcsstr;
 using il2cpp_utils::GetClassFromName;
-void dumpBytes(int before, int after, void* loc) {
-    for (int i = -before; i < after; i++) {
-        int val = *(int*)((int)loc + i);
-        log("4 Bytes at: %p has hex value: %08x", (void*)((int)loc + i), val);
-    }
-}
+static const MethodInfo *(*get_method_from_name)(Il2CppClass *, const char *, int) = nullptr;
+static Il2CppObject *(*runtime_invoke)(const MethodInfo *, void *, void **, Il2CppException **) = nullptr;
 
 template <class T>
-struct List : Object
+struct List : Il2CppObject
 {
     Array<T> *items;
     int size;
@@ -39,7 +39,7 @@ struct List : Object
     //   auto static LIST_ADD_ITEM = reinterpret_cast<function_ptr_t<void, List<T> *, T>>(getRealOffset(0x12105A4));
 };
 
-struct UnityObject : Object
+struct UnityObject : Il2CppObject
 {
     int *m_cachedPtr;
 };
@@ -51,7 +51,7 @@ typedef struct
     float w;
 } Quaternion;
 
-struct SaveDataNoteData : Object
+struct SaveDataNoteData : Il2CppObject
 {
     float time;
     int lineIndex;
@@ -60,13 +60,13 @@ struct SaveDataNoteData : Object
     int cutDirection;
 };
 
-struct Bounds : Object
+struct Bounds : Il2CppObject
 {
     Vector3 center;
     Vector3 extents;
 };
 
-struct Scene : Object
+struct Scene : Il2CppObject
 {
     int handle;
 };
@@ -116,57 +116,65 @@ float VectorMagnitude(Vector3 vector)
     return sqrtf(vector.x * vector.x + vector.y * vector.y + vector.z * vector.z);
 }
 static Il2CppClass *sceneClass;
+static Il2CppClass *assetBundleClass;
+static Il2CppClass *assetBundleCreateRequestClass;
 static const MethodInfo *sceneNameMethodInfo;
-static const MethodInfo *(*get_methods)(Il2CppClass *, void **) = nullptr;
-static Il2CppObject *(*runtime_invoke)(const MethodInfo *, void *, void **, Il2CppException **) = nullptr;
-
+static const MethodInfo *assetBundleFromFileAsync;
+static const MethodInfo *assetBundleFromAsync;
+static const MethodInfo *loadAssetAsync;
 MAKE_HOOK(set_active_scene, set_active_scene_offset, bool, int scene)
 {
     log("Called set_active_scene hook");
+    bool result = set_active_scene(scene);
 
- //   bool result = set_active_scene(scene);
- //   log("Result %s", result ? "true" : "false");
- 
     if (sceneClass == nullptr)
         sceneClass = GetClassFromName("UnityEngine.SceneManagement", "Scene");
-    if (get_methods == nullptr || runtime_invoke == nullptr)
-    {
-        void *imagehandle = dlopen("/data/app/com.beatgames.beatsaber-1/lib/arm/libil2cpp.so", 1);
-        if (get_methods == nullptr)
-            *(void **)(&get_methods) = dlsym(imagehandle, "il2cpp_class_get_methods");
-        if (runtime_invoke == nullptr)
-            *(void **)(&runtime_invoke) = dlsym(imagehandle, "il2cpp_runtime_invoke");
-        dlclose(imagehandle);
-    }
-  void *iter = nullptr;
-    MethodInfo const *m;
+    //Get scene name method
     if (sceneNameMethodInfo == nullptr)
-        while ((m = get_methods(sceneClass, &iter)) != nullptr)
-        {
-            if (std::strncmp(m->name, "GetNameInternal", 16) == 0)
-            {
-                //          log("Stretchable Obstacle Method: %s", m->name);
-                sceneNameMethodInfo = m;
-                //       log("SetSizeMethod: %i", SetSizeMethodInfo->parameters_count);
-                break;
-            }
-        }
+    {
+        sceneNameMethodInfo = get_method_from_name(sceneClass, "GetNameInternal", 1);
+    }
+    //Get Scene Name
+
     Il2CppException *exception = nullptr;
-  //  log("Scene Name Method params: %i", sceneNameMethodInfo->parameters_count);
-  //      log("Scene Name Method name: %s", sceneNameMethodInfo->name);
-        
+    void *sceneNameparams[] = {&scene};
+    auto nameResult = runtime_invoke(sceneNameMethodInfo, nullptr, sceneNameparams, &exception);
+    cs_string *csName = reinterpret_cast<cs_string *>(nameResult);
+    auto sceneName = to_utf8(csstrtostr(csName)).c_str();
 
-    void*  params[] = {&scene};
-  //  public string get_name();
-    auto result2 = runtime_invoke(sceneNameMethodInfo, nullptr, params, &exception);
-    cs_string * csName = reinterpret_cast<cs_string*>(result2);
-    char sceneName[100];
-    csstrtostr(csName, sceneName);
-    log("Scene Name: %s", sceneName);
-  //  log("Scene Name: %s", reinterpret_cast<const char*>(result));
+    //Code to run if menuCore
+    if (std::strncmp(sceneName, "MenuCore", 8) == 0)
+    {
+        log("MenuCore Scene");
+        if (assetBundleClass == nullptr)
+            assetBundleClass = GetClassFromName("UnityEngine", "AssetBundle");
+        if (assetBundleCreateRequestClass == nullptr)
+            assetBundleCreateRequestClass = GetClassFromName("UnityEngine", "AssetBundleCreateRequest");
 
-        log("End set_active_scene hook");
-    return set_active_scene(scene);
+        if (assetBundleFromFileAsync == nullptr)
+            assetBundleFromFileAsync = get_method_from_name(assetBundleClass, "LoadFromFileAsync", 1);
+
+        if (assetBundleFromAsync == nullptr)
+            assetBundleFromAsync = get_method_from_name(assetBundleCreateRequestClass, "get_AssetBundle", 0);
+
+        if (loadAssetAsync == nullptr)
+            loadAssetAsync = get_method_from_name(assetBundleClass, "LoadAssetAsync", 3);
+
+        //Attempt to load assetbundle
+        //void* static LoadFromFileAsync(fileName): 0x1278B44
+        //void* get_AssetBundle(asyncBundle): 0x1278D60
+        //void* LoadAssetAsync(bundle, type, name_from_bundle): 0x5CD740
+        cs_string *assetFilePath = createcsstr("/sdcard/Android/data/com.beatgames.beatsaber/files/sabers/tesla3.saber");
+        void *fromFileParams[] = {assetFilePath};
+        void *asyncBundle = runtime_invoke(assetBundleFromFileAsync, nullptr, fromFileParams, &exception);
+                log("Grabbed Async bundle");
+   
+   //     void *assetBundle = runtime_invoke(assetBundleFromAsync, asyncBundle, nullptr, &exception);
+   //     log("Grabbed Asset bundle");
+      //  void *assetAsync = runtime_invoke(loadAssetAsync, assetBundle, )
+    }
+    log("End set_active_scene hook");
+    return result;
 }
 
 __attribute__((constructor)) void lib_main()
@@ -175,4 +183,16 @@ __attribute__((constructor)) void lib_main()
     log("Installing Custom Sabers Hooks!");
     INSTALL_HOOK(set_active_scene);
     log("Installed Custom Sabers Hooks!");
+    log("Getting il2cpp api functions for Custom Sabers.");
+    if (get_method_from_name == nullptr || runtime_invoke == nullptr)
+    {
+        void *imagehandle = dlopen("/data/app/com.beatgames.beatsaber-1/lib/arm/libil2cpp.so", 1);
+        if (get_method_from_name == nullptr)
+
+            *(void **)(&get_method_from_name) = dlsym(imagehandle, "il2cpp_class_get_method_from_name");
+        if (runtime_invoke == nullptr)
+            *(void **)(&runtime_invoke) = dlsym(imagehandle, "il2cpp_runtime_invoke");
+        dlclose(imagehandle);
+    }
+    log("Got il2cpp api functions for Custom Sabers.");
 }

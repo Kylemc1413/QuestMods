@@ -48,7 +48,7 @@ struct List : Object
     //   auto static LIST_ADD_ITEM = reinterpret_cast<function_ptr_t<void, List<T> *, T>>(getRealOffset(0x12105A4));
 };
 
-struct UnityObject : Object
+struct UnityObject : Il2CppObject
 {
     int *m_cachedPtr;
 };
@@ -60,7 +60,7 @@ typedef struct
     float w;
 } Quaternion;
 
-struct SaveDataNoteData : Object
+struct SaveDataNoteData : Il2CppObject
 {
     float time;
     int lineIndex;
@@ -69,7 +69,7 @@ struct SaveDataNoteData : Object
     int cutDirection;
 };
 
-struct SaveDataObstacleData : Object
+struct SaveDataObstacleData : Il2CppObject
 {
     float time;
     int lineIndex;
@@ -78,14 +78,14 @@ struct SaveDataObstacleData : Object
     int width;
 };
 
-struct SaveDataEventData : Object
+struct SaveDataEventData : Il2CppObject
 {
     float time;
     int eventType;
     int value;
 };
 
-struct BeatmapObjectData : Object
+struct BeatmapObjectData : Il2CppObject
 {
     int beatmapObjectType;
     float time;
@@ -136,7 +136,7 @@ struct ObstacleData : BeatmapObjectData
     }
 };
 
-struct BeatmapEventData : Object
+struct BeatmapEventData : Il2CppObject
 {
     int eventType;
     float time;
@@ -150,12 +150,12 @@ struct BeatmapEventData : Object
     }
 };
 
-struct BeatmapLineData : Object
+struct BeatmapLineData : Il2CppObject
 {
     Array<BeatmapObjectData *> *beatmapObjectData;
 };
 
-struct Bounds : Object
+struct Bounds : Il2CppObject
 {
     Vector3 center;
     Vector3 extents;
@@ -204,7 +204,7 @@ struct ObstacleController : UnityObject
     ObstacleData *obstacleData;
 };
 
-struct BeatmapData : Object
+struct BeatmapData : Il2CppObject
 {
     Array<BeatmapLineData *> *beatmapLinesData;
     Array<BeatmapEventData *> *beatmapEventData;

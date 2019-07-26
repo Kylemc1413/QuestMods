@@ -32,6 +32,7 @@ LOCAL_MODULE := hook
 include $(CLEAR_VARS)
 LOCAL_LDLIBS := -llog
 LOCAL_CFLAGS    := -DMOD_ID='"CustomSabers"' -DVERSION='"0.0.1"'
+LOCAL_CPPFLAGS := -std=c++17
 LOCAL_MODULE    := customsabers
 #LOCAL_SHARED_LIBRARIES := testil2cpp
 LOCAL_SRC_FILES := main.cpp ../beatsaber-hook/shared/utils/utils.cpp ../beatsaber-hook/shared/inline-hook/inlineHook.c ../beatsaber-hook/shared/inline-hook/relocate.c
