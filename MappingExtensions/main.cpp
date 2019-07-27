@@ -36,7 +36,7 @@
 //extern "C" Class * /* to be casted to Array */ il2cpp_class_from_type(void *Il2CppType_type);
 using il2cpp_utils::GetClassFromName;
 template <class T>
-struct List : Object
+struct List : Il2CppObject
 {
     Array<T> *items;
     int size;
