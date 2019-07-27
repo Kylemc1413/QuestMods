@@ -30,6 +30,7 @@ static void *(*object_unbox)(Il2CppObject *) = nullptr;
 template <class T>
 struct List : Il2CppObject
 {
+
     Array<T> *items;
     int size;
     int version;    // ?
@@ -73,7 +74,7 @@ struct Scene : Il2CppObject
 };
 
 Quaternion ToQuaternion(float pitch, float yaw, float roll) // yaw (Z), pitch (Y), roll (X)
-{
+{ 
     // Abbreviations for the various angular functions
     yaw *= 0.01745329251;
     pitch *= 0.01745329251;
@@ -98,6 +99,7 @@ Quaternion ToQuaternion(float pitch, float yaw, float roll) // yaw (Z), pitch (Y
 
 Vector3 AddVectors(Vector3 left, Vector3 right)
 {
+
     Vector3 result;
     result.x = left.x + right.x;
     result.y = left.y + right.y;
@@ -146,6 +148,7 @@ static const MethodInfo *transformLocalEulerGet;
 static const MethodInfo *transformParentGet;
 static const MethodInfo *transformParentSet;
 static void *asyncBundle;
+void GrabMethods();
 MAKE_HOOK(set_active_scene, set_active_scene_offset, bool, int scene)
 {
     log("Called set_active_scene hook");
@@ -169,6 +172,7 @@ MAKE_HOOK(set_active_scene, set_active_scene_offset, bool, int scene)
     if (std::strncmp(sceneName, "MenuCore", 8) == 0)
     {
         log("MenuCore Scene");
+
     }
     log("End set_active_scene hook");
     return result;
@@ -179,6 +183,135 @@ MAKE_HOOK(solo_free_play, 0x4DBD74, void, void *self, bool firstActivation, int 
     log("Called solo_free_play_hook");
 
     solo_free_play(self, firstActivation, activationType);
+
+    Il2CppException *exception = nullptr;
+    //Attempt to load assetbundle
+    //void* static LoadFromFileAsync(fileName): 0x1278B44
+    //void* get_AssetBundle(asyncBundle): 0x1278D60
+    //void* LoadAssetAsync(bundle, type, name_from_bundle): 0x5CD740
+ //   float progress = 0;
+ //   while(progress < 1)
+ //   {
+        
+ //       log("Checking done: %f", progress);
+ //       progress = *(reinterpret_cast<float*>(object_unbox(runtime_invoke(asyncOperationGetIsDone, asyncBundle, nullptr, &exception))));
+ //   }
+ if(asyncBundle == nullptr)
+ {
+       GrabMethods();
+    log("Loading Async Bundle");
+    Il2CppException *exception;
+      cs_string *assetFilePath = createcsstr("/sdcard/Android/data/com.beatgames.beatsaber/files/sabers/tesla37.saber");
+    void *fromFileParams[] = {assetFilePath};
+        asyncBundle = runtime_invoke(assetBundleFromFileAsync, nullptr, fromFileParams, &exception);
+
+    log("Grabbed Async bundle request");
+    log("Attempting to set allowSceneActivation of async to true");
+    bool sceneActivationValue = true;
+    void *setSceneActivationParams[] = {&sceneActivationValue};
+    runtime_invoke(asyncOperationSetAllowSceneActivation, asyncBundle, setSceneActivationParams, &exception);
+ }
+ else
+ {
+   bool done = false;
+   int k = 0;
+    while(!done && k < 3)
+    {
+        
+        log("Checking done: %s", done? "True" : "False");
+        done = *(reinterpret_cast<bool*>(object_unbox(runtime_invoke(asyncOperationGetIsDone, asyncBundle, nullptr, &exception))));
+        log("Checking done: %s", done? "True" : "False");
+        k++;
+    }
+       void *assetBundle = runtime_invoke(assetBundleFromAsync, asyncBundle, nullptr, &exception);
+
+    log("Grabbed Asset bundle");
+    cs_string *assetPath = createcsstr("_customsaber");
+    void *assetPathParams[] = {assetPath, type_get_object(class_get_type(gameObjectClass))};
+    void *assetAsync = runtime_invoke(loadAssetAsync, assetBundle, assetPathParams, &exception);
+    if (exception != nullptr)
+    {
+        const MethodInfo *exceptionToString = get_method_from_name(exception->klass, "ToString", 0);
+        void *exceptionString = runtime_invoke(exceptionToString, exception, nullptr, &exception);
+        cs_string *message = reinterpret_cast<cs_string *>(exceptionString);
+        log("Exception: %s", to_utf8(csstrtostr(message)).c_str());
+    }
+    log("Grabbed Asset Async Request");
+    void *customSaberObject = runtime_invoke(getAsset, assetAsync, nullptr, &exception);
+    if (exception != nullptr)
+    {
+        const MethodInfo *exceptionToString = get_method_from_name(exception->klass, "ToString", 0);
+        void *exceptionString = runtime_invoke(exceptionToString, exception, nullptr, &exception);
+        cs_string *message = reinterpret_cast<cs_string *>(exceptionString);
+        log("Exception: %s", to_utf8(csstrtostr(message)).c_str());
+    }
+    log("Grabbed Asset Object");
+
+    //Attempt to Instaniate GameObject
+    void *instantiateParams[] = {customSaberObject};
+    void *instantiatedObject = runtime_invoke(objectInstantiate, nullptr, instantiateParams, &exception);
+    log("Instantiated Asset Object");
+
+    void *saberObjTransform = runtime_invoke(getGameObjectTransform, instantiatedObject, nullptr, &exception);
+    log("Get GameObject Transform");
+
+    if (asyncBundle == nullptr)
+        log("null async bundle");
+    if (assetBundle == nullptr)
+        log("null asset bundle");
+    if (customSaberObject == nullptr)
+        log("null asset object");
+    if (instantiatedObject == nullptr)
+        log("null instantiation");
+    if (saberObjTransform == nullptr)
+        log("null Instantiated Obj Transform");
+
+    //Set Stuff after getting object Transform
+
+    Vector3 zero{zero.x = 0, zero.y = 4, zero.z = 0};
+    Quaternion rot = ToQuaternion(0, 0, 0);
+ 
+    cs_string *parentName = createcsstr("MainScreen");
+    void *parentFindParams[] = {parentName};
+    void *parentObj = runtime_invoke(findGameObject, nullptr, parentFindParams, &exception);
+    log("Called Find for Parent Object");
+    void *parentTransform = runtime_invoke(getGameObjectTransform, parentObj, nullptr, &exception);
+    log("Get Parent Transform");
+
+    cs_string *rightSaberName = createcsstr("RightSaber");
+    void *rightParams[] = {rightSaberName};
+    void *rightSaberTransform = runtime_invoke(findTransform, saberObjTransform, rightParams, &exception);
+    log("Find RightSaber Transform");
+
+    runtime_invoke(transformParentSet, rightSaberTransform, &parentTransform, &exception);
+    log("Set RightSaber Parent");
+
+    void *setPosParam[] = {&zero};
+    runtime_invoke(transformPosSet, rightSaberTransform, setPosParam, &exception);
+
+    Il2CppObject *parentPos = runtime_invoke(transformPosGet, saberObjTransform, nullptr, &exception);
+    log("Get Parent Position");
+
+    Vector3 *ParentPos = reinterpret_cast<Vector3 *>(object_unbox(parentPos));
+    log("Parent Position: %f %f %f", ParentPos->x, ParentPos->y, ParentPos->z);
+    log("Set RightSaber Position");
+    
+ //   float progress = 0;
+ //   while(progress < 1)
+ //   {
+ //       
+ //       log("Checking done: %f", progress);
+ //       progress = *(reinterpret_cast<float*>(object_unbox(runtime_invoke(asyncOperationGetIsDone, asyncBundle, nullptr, &exception))));
+ //   }
+ }
+ 
+  
+    log("Ended solo_free_play_hook");
+}
+
+
+void GrabMethods()
+{
     if (assetBundleClass == nullptr)
         assetBundleClass = GetClassFromName("UnityEngine", "AssetBundle");
     if (assetBundleCreateRequestClass == nullptr)
@@ -238,109 +371,8 @@ MAKE_HOOK(solo_free_play, 0x4DBD74, void, void *self, bool firstActivation, int 
     if (asyncOperationSetAllowSceneActivation == nullptr)
         asyncOperationSetAllowSceneActivation = get_method_from_name(asyncOperationClass, "set_allowSceneActivation", 1);
     if (asyncOperationGetIsDone == nullptr)
-        asyncOperationGetIsDone = get_method_from_name(asyncOperationClass, "get_progress", 0);
-    Il2CppException *exception = nullptr;
-    //Attempt to load assetbundle
-    //void* static LoadFromFileAsync(fileName): 0x1278B44
-    //void* get_AssetBundle(asyncBundle): 0x1278D60
-    //void* LoadAssetAsync(bundle, type, name_from_bundle): 0x5CD740
-    cs_string *assetFilePath = createcsstr("/sdcard/Android/data/com.beatgames.beatsaber/files/sabers/tesla3.saber");
-    void *fromFileParams[] = {assetFilePath};
-    if (asyncBundle == nullptr)
-        asyncBundle = runtime_invoke(assetBundleFromFileAsync, nullptr, fromFileParams, &exception);
-
-    log("Grabbed Async bundle request");
-    log("Attempting to set allowSceneActivation of async to true");
-    bool sceneActivationValue = true;
-    void *setSceneActivationParams[] = {&sceneActivationValue};
-    runtime_invoke(asyncOperationSetAllowSceneActivation, asyncBundle, setSceneActivationParams, &exception);
-        log("set allowSceneActivation of async to true");
-        log("waiting until async request done");
-  //  float progress = 0;
-  //  while(progress < 1)
-  //  {
-  //      
-  //      log("Checking done: %f", progress);
-  //      progress = *(reinterpret_cast<float*>(object_unbox(runtime_invoke(asyncOperationGetIsDone, asyncBundle, nullptr, &exception))));
-  //  }
-    void *assetBundle = runtime_invoke(assetBundleFromAsync, asyncBundle, nullptr, &exception);
-
-    log("Grabbed Asset bundle");
-    cs_string *assetPath = createcsstr("_customsaber");
-    void *assetPathParams[] = {assetPath, type_get_object(class_get_type(gameObjectClass))};
-    void *assetAsync = runtime_invoke(loadAssetAsync, assetBundle, assetPathParams, &exception);
-    if (exception != nullptr)
-    {
-        Il2CppException *exception2;
-        const MethodInfo *exceptionToString = get_method_from_name(exception->klass, "ToString", 0);
-        void *exceptionString = runtime_invoke(exceptionToString, exception, nullptr, &exception2);
-        cs_string *message = reinterpret_cast<cs_string *>(exceptionString);
-        log("Exception: %s", to_utf8(csstrtostr(message)).c_str());
-    }
-    log("Grabbed Asset Async Request");
-    void *customSaberObject = runtime_invoke(getAsset, assetAsync, nullptr, &exception);
-    if (exception != nullptr)
-    {
-        Il2CppException *exception2;
-        const MethodInfo *exceptionToString = get_method_from_name(exception->klass, "ToString", 0);
-        void *exceptionString = runtime_invoke(exceptionToString, exception, nullptr, &exception2);
-        cs_string *message = reinterpret_cast<cs_string *>(exceptionString);
-        log("Exception: %s", to_utf8(csstrtostr(message)).c_str());
-    }
-    log("Grabbed Asset Object");
-
-    //Attempt to Instaniate GameObject
-    void *instantiateParams[] = {customSaberObject};
-    void *instantiatedObject = runtime_invoke(objectInstantiate, nullptr, instantiateParams, &exception);
-    log("Instantiated Asset Object");
-
-    void *saberObjTransform = runtime_invoke(getGameObjectTransform, instantiatedObject, nullptr, &exception);
-    log("Get GameObject Transform");
-
-    if (asyncBundle == nullptr)
-        log("null async bundle");
-    if (assetBundle == nullptr)
-        log("null asset bundle");
-    if (customSaberObject == nullptr)
-        log("null asset object");
-    if (instantiatedObject == nullptr)
-        log("null instantiation");
-    if (saberObjTransform == nullptr)
-        log("null Instantiated Obj Transform");
-
-    //Set Stuff after getting object Transform
-
-    Vector3 zero{zero.x = 0, zero.y = 0, zero.z = 0};
-    Quaternion rot = ToQuaternion(0, 0, 0);
-
-    cs_string *parentName = createcsstr("MainScreen");
-    void *parentFindParams[] = {parentName};
-    void *parentObj = runtime_invoke(findGameObject, nullptr, parentFindParams, &exception);
-    log("Called Find for Parent Object");
-    void *parentTransform = runtime_invoke(getGameObjectTransform, parentObj, nullptr, &exception);
-    log("Get Parent Transform");
-
-    cs_string *rightSaberName = createcsstr("RightSaber");
-    void *rightParams[] = {rightSaberName};
-    void *rightSaberTransform = runtime_invoke(findTransform, saberObjTransform, rightParams, &exception);
-    log("Find RightSaber Transform");
-
-    runtime_invoke(transformParentSet, rightSaberTransform, &parentTransform, &exception);
-    log("Set RightSaber Parent");
-
-    Il2CppObject *parentPos = runtime_invoke(transformPosGet, parentTransform, nullptr, &exception);
-    log("Get Parent Position");
-
-    Vector3 *ParentPos = reinterpret_cast<Vector3 *>(object_unbox(parentPos));
-    log("Parent Position: %f %f %f", ParentPos->x, ParentPos->y, ParentPos->z);
-
-    void *setPosParam[] = {&ParentPos};
-    runtime_invoke(transformPosSet, rightSaberTransform, setPosParam, &exception);
-    log("Set RightSaber Position");
-
-    log("Ended solo_free_play_hook");
+        asyncOperationGetIsDone = get_method_from_name(asyncOperationClass, "get_isDone", 0);
 }
-
 __attribute__((constructor)) void lib_main()
 {
     
@@ -360,4 +392,5 @@ __attribute__((constructor)) void lib_main()
         dlclose(imagehandle);
     }
     log("Got il2cpp api functions for Custom Sabers.");
+
 }

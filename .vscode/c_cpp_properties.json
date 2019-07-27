@@ -15,9 +15,9 @@
                 "_UNICODE"
             ],
             "windowsSdkVersion": "10.0.17763.0",
-            "compilerPath": "D:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.21.27702/bin/Hostx64/x64/cl.exe",
+            "compilerPath": "D:/Android/android-ndk-r20/toolchains/x86_64-4.9/prebuilt/windows-x86_64/bin/x86_64-linux-android-c++filt.exe",
             "cStandard": "c11",
-            "cppStandard": "c++17",
+            "cppStandard": "c++2a",
             "intelliSenseMode": "clang-x64"
         }
     ],
