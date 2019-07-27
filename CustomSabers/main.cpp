@@ -18,7 +18,9 @@
 
 //Hook offsets
 #define set_active_scene_offset 0xD902B4
-#define mainmenu_did_activate_offset 0x4A0A80
+#define gameplay_core_scene_setup_start_offset 0x5268D0
+#define saber_start_offset 0x538890
+
 #define MOD_ID "CustomSabers"
 #define VERSION "0.0.1"
 using il2cpp_utils::createcsstr;
@@ -178,16 +180,20 @@ MAKE_HOOK(set_active_scene, set_active_scene_offset, bool, int scene)
     return result;
 }
 
-MAKE_HOOK(mainmenu_did_activate, mainmenu_did_activate_offset, void, void *self, bool firstActivation, int activationType)
+void *customSaberAssetBundle;
+void *customSaberGameObject;
+void *customSaberGameObjectTransform;
+
+MAKE_HOOK(gameplay_core_scene_setup_start, gameplay_core_scene_setup_start_offset, void, void *self)
 {
-    log("Called mainmenu_did_activate hook");
-    mainmenu_did_activate(self, firstActivation, activationType);
+    log("Called gameplay_core_scene_setup_start hook");
+    gameplay_core_scene_setup_start(self);
 
     GrabMethods();
     if (asyncBundle == nullptr)
     {
         Il2CppException *exception;
-        cs_string *assetFilePath = createcsstr("/sdcard/Android/data/com.beatgames.beatsaber/files/sabers/tesla37.saber");
+        cs_string *assetFilePath = createcsstr("/sdcard/Android/data/com.beatgames.beatsaber/files/sabers/testSaber.qsaber");
         void *fromFileParams[] = {assetFilePath};
         asyncBundle = runtime_invoke(assetBundleFromFileAsync, nullptr, fromFileParams, &exception);
         bool sceneActivationValue = true;
@@ -195,60 +201,54 @@ MAKE_HOOK(mainmenu_did_activate, mainmenu_did_activate_offset, void, void *self,
         runtime_invoke(asyncOperationSetAllowSceneActivation, asyncBundle, setSceneActivationParams, &exception);
         log("Loaded Async Bundle");
     }
+    customSaberGameObject = nullptr;
 }
-MAKE_HOOK(solo_free_play, 0x4DBD74, void, void *self, bool firstActivation, int activationType)
+
+MAKE_HOOK(saber_start, saber_start_offset, void, void *self)
 {
-    log("Called solo_free_play_hook");
-
-    solo_free_play(self, firstActivation, activationType);
-
+    saber_start(self);
+    log("Called saber_start hook");
+    //Load Custom Saber Objects if not loaded
     Il2CppException *exception = nullptr;
-    void *assetBundle = runtime_invoke(assetBundleFromAsync, asyncBundle, nullptr, &exception);
-    log("Grabbed Asset bundle");
-
-    cs_string *assetPath = createcsstr("_customsaber");
-    void *assetPathParams[] = {assetPath, type_get_object(class_get_type(gameObjectClass))};
-    void *assetAsync = runtime_invoke(loadAssetAsync, assetBundle, assetPathParams, &exception);
-    if (exception != nullptr)
+    if (customSaberAssetBundle == nullptr)
     {
-        const MethodInfo *exceptionToString = get_method_from_name(exception->klass, "ToString", 0);
-        void *exceptionString = runtime_invoke(exceptionToString, exception, nullptr, &exception);
-        cs_string *message = reinterpret_cast<cs_string *>(exceptionString);
-        log("Exception: %s", to_utf8(csstrtostr(message)).c_str());
+        customSaberAssetBundle = runtime_invoke(assetBundleFromAsync, asyncBundle, nullptr, &exception);
+        log("Grabbed Asset bundle");
     }
-    log("Grabbed Asset Async Request");
-
-    void *customSaberObject = runtime_invoke(getAsset, assetAsync, nullptr, &exception);
-    if (exception != nullptr)
+    if(customSaberGameObject == nullptr)
     {
-        const MethodInfo *exceptionToString = get_method_from_name(exception->klass, "ToString", 0);
-        void *exceptionString = runtime_invoke(exceptionToString, exception, nullptr, &exception);
-        cs_string *message = reinterpret_cast<cs_string *>(exceptionString);
-        log("Exception: %s", to_utf8(csstrtostr(message)).c_str());
+        cs_string *assetPath = createcsstr("_customsaber");
+        void *assetPathParams[] = {assetPath, type_get_object(class_get_type(gameObjectClass))};
+        void *assetAsync = runtime_invoke(loadAssetAsync, customSaberAssetBundle, assetPathParams, &exception);
+        if (exception != nullptr)
+        {
+            const MethodInfo *exceptionToString = get_method_from_name(exception->klass, "ToString", 0);
+            void *exceptionString = runtime_invoke(exceptionToString, exception, nullptr, &exception);
+            cs_string *message = reinterpret_cast<cs_string *>(exceptionString);
+            log("Exception: %s", to_utf8(csstrtostr(message)).c_str());
+        }
+        log("Grabbed Asset Async Request");
+
+        void *customSaberObject = runtime_invoke(getAsset, assetAsync, nullptr, &exception);
+        if (exception != nullptr)
+        {
+            const MethodInfo *exceptionToString = get_method_from_name(exception->klass, "ToString", 0);
+            void *exceptionString = runtime_invoke(exceptionToString, exception, nullptr, &exception);
+            cs_string *message = reinterpret_cast<cs_string *>(exceptionString);
+            log("Exception: %s", to_utf8(csstrtostr(message)).c_str());
+        }
+        log("Grabbed Asset Object");
+
+        //Attempt to Instaniate GameObject
+        void *instantiateParams[] = {customSaberObject};
+        customSaberGameObject = runtime_invoke(objectInstantiate, nullptr, instantiateParams, &exception);
+        log("Instantiated Asset Object");
+
+        customSaberGameObjectTransform = runtime_invoke(getGameObjectTransform, customSaberGameObject, nullptr, &exception);
+        log("Get GameObject Transform");
     }
-    log("Grabbed Asset Object");
-
-    //Attempt to Instaniate GameObject
-    void *instantiateParams[] = {customSaberObject};
-    void *instantiatedObject = runtime_invoke(objectInstantiate, nullptr, instantiateParams, &exception);
-    log("Instantiated Asset Object");
-
-    void *saberObjTransform = runtime_invoke(getGameObjectTransform, instantiatedObject, nullptr, &exception);
-    log("Get GameObject Transform");
-
-    if (asyncBundle == nullptr)
-        log("null async bundle");
-    if (assetBundle == nullptr)
-        log("null asset bundle");
-    if (customSaberObject == nullptr)
-        log("null asset object");
-    if (instantiatedObject == nullptr)
-        log("null instantiation");
-    if (saberObjTransform == nullptr)
-        log("null Instantiated Obj Transform");
-
-    //Set Stuff after getting object Transform
-/* 
+        //Set Stuff after getting object Transform
+    /* 
     Vector3 zero{zero.x = 0, zero.y = 4, zero.z = 0};
     Quaternion rot = ToQuaternion(0, 0, 0);
 
@@ -278,16 +278,15 @@ MAKE_HOOK(solo_free_play, 0x4DBD74, void, void *self, bool firstActivation, int 
     log("Set RightSaber Position");
     */
 
-    log("Ended solo_free_play_hook");
-}
 
+}
 __attribute__((constructor)) void lib_main()
 {
 
     log("Installing Custom Sabers Hooks!");
     INSTALL_HOOK(set_active_scene);
-    INSTALL_HOOK(solo_free_play);
-    INSTALL_HOOK(mainmenu_did_activate);
+    INSTALL_HOOK(gameplay_core_scene_setup_start);
+    INSTALL_HOOK(saber_start);
     log("Installed Custom Sabers Hooks!");
     log("Getting il2cpp api functions for Custom Sabers.");
     if (get_method_from_name == nullptr || runtime_invoke == nullptr)
