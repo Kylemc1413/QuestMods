@@ -27,6 +27,7 @@ static const MethodInfo *(*get_method_from_name)(Il2CppClass *, const char *, in
 static Il2CppObject *(*runtime_invoke)(const MethodInfo *, void *, void **, Il2CppException **) = nullptr;
 static const Il2CppType *(*class_get_type)(Il2CppClass *) = nullptr;
 static Il2CppObject *(*type_get_object)(const Il2CppType *) = nullptr;
+static void *(*object_unbox)(Il2CppObject*) = nullptr;
 template <class T>
 struct List : Il2CppObject
 {
@@ -250,29 +251,39 @@ MAKE_HOOK(solo_free_play, 0x4DBD74, void, void *self, bool firstActivation, int 
     //Attempt to Instaniate GameObject to 0,0,0
     Vector3 zero{zero.x = 0, zero.y = 0, zero.z = 0};
     Quaternion rot = ToQuaternion(0, 0, 0);
+
+
+    void *instantiateParams[] = {customSaberObject};
+    void *instantiatedObject = runtime_invoke(objectInstantiate, nullptr, instantiateParams, &exception);
+    log("Instantiated Asset Object");
+
     cs_string *parentName = createcsstr("MainScreen");
     void *parentFindParams[] = {parentName};
     void *parentObj = runtime_invoke(findGameObject, nullptr, parentFindParams, &exception);
     log("Called Find for Parent Object");
     void* parentTransform = runtime_invoke(getGameObjectTransform, parentObj, nullptr, &exception);
     log("Get Parent Transform");
-    void *instantiateParams[] = {customSaberObject};
-    void *instantiatedObject = runtime_invoke(objectInstantiate, nullptr, instantiateParams, &exception);
-    log("Instantiated Asset Object");
+
 
     void* saberObjTransform = runtime_invoke(getGameObjectTransform, instantiatedObject, nullptr, &exception);
     log("Get GameObject Transform");
+
     cs_string *rightSaberName = createcsstr("RightSaber");
     void *rightParams[] = {rightSaberName};
     void* rightSaberTransform = runtime_invoke(findTransform, saberObjTransform, rightParams, &exception);
     log("Find RightSaber Transform");
+
     runtime_invoke(transformParentSet, rightSaberTransform, &parentTransform, &exception);
     log("Set RightSaber Parent");
-    void* parentPos = runtime_invoke(transformPosGet, parentTransform, nullptr, &exception);
+
+    Il2CppObject* parentPos = runtime_invoke(transformPosGet, parentTransform, nullptr, &exception);
     log("Get Parent Position");
-    Vector3 *ParentPos = reinterpret_cast<Vector3*>(parentPos);
+
+    Vector3 *ParentPos = reinterpret_cast<Vector3*>(object_unbox(parentPos));
     log("Parent Position: %f %f %f", ParentPos->x, ParentPos->y, ParentPos->z);
-    runtime_invoke(transformPosSet, rightSaberTransform, &parentPos, &exception);
+
+    void *setPosParam[] = {&ParentPos};
+    runtime_invoke(transformPosSet, rightSaberTransform, setPosParam, &exception);
     log("Set RightSaber Position");
 
     log("Ended solo_free_play_hook");
@@ -292,6 +303,7 @@ __attribute__((constructor)) void lib_main()
         *(void **)(&runtime_invoke) = dlsym(imagehandle, "il2cpp_runtime_invoke");
         *(void **)(&class_get_type) = dlsym(imagehandle, "il2cpp_class_get_type");
         *(void **)(&type_get_object) = dlsym(imagehandle, "il2cpp_type_get_object");
+        *(void **)(&object_unbox) = dlsym(imagehandle, "il2cpp_object_unbox");
         dlclose(imagehandle);
     }
     log("Got il2cpp api functions for Custom Sabers.");
