@@ -18,6 +18,7 @@
 
 //Hook offsets
 #define set_active_scene_offset 0xD902B4
+#define mainmenu_did_activate_offset 0x4A0A80
 #define MOD_ID "CustomSabers"
 #define VERSION "0.0.1"
 using il2cpp_utils::createcsstr;
@@ -74,7 +75,7 @@ struct Scene : Il2CppObject
 };
 
 Quaternion ToQuaternion(float pitch, float yaw, float roll) // yaw (Z), pitch (Y), roll (X)
-{ 
+{
     // Abbreviations for the various angular functions
     yaw *= 0.01745329251;
     pitch *= 0.01745329251;
@@ -172,12 +173,29 @@ MAKE_HOOK(set_active_scene, set_active_scene_offset, bool, int scene)
     if (std::strncmp(sceneName, "MenuCore", 8) == 0)
     {
         log("MenuCore Scene");
-
     }
     log("End set_active_scene hook");
     return result;
 }
 
+MAKE_HOOK(mainmenu_did_activate, mainmenu_did_activate_offset, void, void *self, bool firstActivation, int activationType)
+{
+    log("Called mainmenu_did_activate hook");
+    mainmenu_did_activate(self, firstActivation, activationType);
+
+    GrabMethods();
+    if (asyncBundle == nullptr)
+    {
+        Il2CppException *exception;
+        cs_string *assetFilePath = createcsstr("/sdcard/Android/data/com.beatgames.beatsaber/files/sabers/tesla37.saber");
+        void *fromFileParams[] = {assetFilePath};
+        asyncBundle = runtime_invoke(assetBundleFromFileAsync, nullptr, fromFileParams, &exception);
+        bool sceneActivationValue = true;
+        void *setSceneActivationParams[] = {&sceneActivationValue};
+        runtime_invoke(asyncOperationSetAllowSceneActivation, asyncBundle, setSceneActivationParams, &exception);
+        log("Loaded Async Bundle");
+    }
+}
 MAKE_HOOK(solo_free_play, 0x4DBD74, void, void *self, bool firstActivation, int activationType)
 {
     log("Called solo_free_play_hook");
@@ -185,47 +203,9 @@ MAKE_HOOK(solo_free_play, 0x4DBD74, void, void *self, bool firstActivation, int 
     solo_free_play(self, firstActivation, activationType);
 
     Il2CppException *exception = nullptr;
-    //Attempt to load assetbundle
-    //void* static LoadFromFileAsync(fileName): 0x1278B44
-    //void* get_AssetBundle(asyncBundle): 0x1278D60
-    //void* LoadAssetAsync(bundle, type, name_from_bundle): 0x5CD740
- //   float progress = 0;
- //   while(progress < 1)
- //   {
-        
- //       log("Checking done: %f", progress);
- //       progress = *(reinterpret_cast<float*>(object_unbox(runtime_invoke(asyncOperationGetIsDone, asyncBundle, nullptr, &exception))));
- //   }
- if(asyncBundle == nullptr)
- {
-       GrabMethods();
-    log("Loading Async Bundle");
-    Il2CppException *exception;
-      cs_string *assetFilePath = createcsstr("/sdcard/Android/data/com.beatgames.beatsaber/files/sabers/tesla37.saber");
-    void *fromFileParams[] = {assetFilePath};
-        asyncBundle = runtime_invoke(assetBundleFromFileAsync, nullptr, fromFileParams, &exception);
-
-    log("Grabbed Async bundle request");
-    log("Attempting to set allowSceneActivation of async to true");
-    bool sceneActivationValue = true;
-    void *setSceneActivationParams[] = {&sceneActivationValue};
-    runtime_invoke(asyncOperationSetAllowSceneActivation, asyncBundle, setSceneActivationParams, &exception);
- }
- else
- {
-   bool done = false;
-   int k = 0;
-    while(!done && k < 3)
-    {
-        
-        log("Checking done: %s", done? "True" : "False");
-        done = *(reinterpret_cast<bool*>(object_unbox(runtime_invoke(asyncOperationGetIsDone, asyncBundle, nullptr, &exception))));
-        log("Checking done: %s", done? "True" : "False");
-        k++;
-    }
-       void *assetBundle = runtime_invoke(assetBundleFromAsync, asyncBundle, nullptr, &exception);
-
+    void *assetBundle = runtime_invoke(assetBundleFromAsync, asyncBundle, nullptr, &exception);
     log("Grabbed Asset bundle");
+
     cs_string *assetPath = createcsstr("_customsaber");
     void *assetPathParams[] = {assetPath, type_get_object(class_get_type(gameObjectClass))};
     void *assetAsync = runtime_invoke(loadAssetAsync, assetBundle, assetPathParams, &exception);
@@ -237,6 +217,7 @@ MAKE_HOOK(solo_free_play, 0x4DBD74, void, void *self, bool firstActivation, int 
         log("Exception: %s", to_utf8(csstrtostr(message)).c_str());
     }
     log("Grabbed Asset Async Request");
+
     void *customSaberObject = runtime_invoke(getAsset, assetAsync, nullptr, &exception);
     if (exception != nullptr)
     {
@@ -267,10 +248,10 @@ MAKE_HOOK(solo_free_play, 0x4DBD74, void, void *self, bool firstActivation, int 
         log("null Instantiated Obj Transform");
 
     //Set Stuff after getting object Transform
-
+/* 
     Vector3 zero{zero.x = 0, zero.y = 4, zero.z = 0};
     Quaternion rot = ToQuaternion(0, 0, 0);
- 
+
     cs_string *parentName = createcsstr("MainScreen");
     void *parentFindParams[] = {parentName};
     void *parentObj = runtime_invoke(findGameObject, nullptr, parentFindParams, &exception);
@@ -295,20 +276,32 @@ MAKE_HOOK(solo_free_play, 0x4DBD74, void, void *self, bool firstActivation, int 
     Vector3 *ParentPos = reinterpret_cast<Vector3 *>(object_unbox(parentPos));
     log("Parent Position: %f %f %f", ParentPos->x, ParentPos->y, ParentPos->z);
     log("Set RightSaber Position");
-    
- //   float progress = 0;
- //   while(progress < 1)
- //   {
- //       
- //       log("Checking done: %f", progress);
- //       progress = *(reinterpret_cast<float*>(object_unbox(runtime_invoke(asyncOperationGetIsDone, asyncBundle, nullptr, &exception))));
- //   }
- }
- 
-  
+    */
+
     log("Ended solo_free_play_hook");
 }
 
+__attribute__((constructor)) void lib_main()
+{
+
+    log("Installing Custom Sabers Hooks!");
+    INSTALL_HOOK(set_active_scene);
+    INSTALL_HOOK(solo_free_play);
+    INSTALL_HOOK(mainmenu_did_activate);
+    log("Installed Custom Sabers Hooks!");
+    log("Getting il2cpp api functions for Custom Sabers.");
+    if (get_method_from_name == nullptr || runtime_invoke == nullptr)
+    {
+        void *imagehandle = dlopen("/data/app/com.beatgames.beatsaber-1/lib/arm/libil2cpp.so", 1);
+        *(void **)(&get_method_from_name) = dlsym(imagehandle, "il2cpp_class_get_method_from_name");
+        *(void **)(&runtime_invoke) = dlsym(imagehandle, "il2cpp_runtime_invoke");
+        *(void **)(&class_get_type) = dlsym(imagehandle, "il2cpp_class_get_type");
+        *(void **)(&type_get_object) = dlsym(imagehandle, "il2cpp_type_get_object");
+        *(void **)(&object_unbox) = dlsym(imagehandle, "il2cpp_object_unbox");
+        dlclose(imagehandle);
+    }
+    log("Got il2cpp api functions for Custom Sabers.");
+}
 
 void GrabMethods()
 {
@@ -372,25 +365,4 @@ void GrabMethods()
         asyncOperationSetAllowSceneActivation = get_method_from_name(asyncOperationClass, "set_allowSceneActivation", 1);
     if (asyncOperationGetIsDone == nullptr)
         asyncOperationGetIsDone = get_method_from_name(asyncOperationClass, "get_isDone", 0);
-}
-__attribute__((constructor)) void lib_main()
-{
-    
-    log("Installing Custom Sabers Hooks!");
-    INSTALL_HOOK(set_active_scene);
-    INSTALL_HOOK(solo_free_play);
-    log("Installed Custom Sabers Hooks!");
-    log("Getting il2cpp api functions for Custom Sabers.");
-    if (get_method_from_name == nullptr || runtime_invoke == nullptr)
-    {
-        void *imagehandle = dlopen("/data/app/com.beatgames.beatsaber-1/lib/arm/libil2cpp.so", 1);
-        *(void **)(&get_method_from_name) = dlsym(imagehandle, "il2cpp_class_get_method_from_name");
-        *(void **)(&runtime_invoke) = dlsym(imagehandle, "il2cpp_runtime_invoke");
-        *(void **)(&class_get_type) = dlsym(imagehandle, "il2cpp_class_get_type");
-        *(void **)(&type_get_object) = dlsym(imagehandle, "il2cpp_type_get_object");
-        *(void **)(&object_unbox) = dlsym(imagehandle, "il2cpp_object_unbox");
-        dlclose(imagehandle);
-    }
-    log("Got il2cpp api functions for Custom Sabers.");
-
 }
