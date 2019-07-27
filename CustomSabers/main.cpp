@@ -129,6 +129,9 @@ static Il2CppClass *gameObjectClass;
 static Il2CppClass *objectClass;
 static Il2CppClass *transformClass;
 static Il2CppClass *asyncOperationClass;
+static Il2CppClass *saberClass;
+static Il2CppClass *componentClass;
+static Il2CppClass *meshFilterClass;
 static const MethodInfo *sceneNameMethodInfo;
 static const MethodInfo *assetBundleFromFileAsync;
 static const MethodInfo *assetBundleFromAsync;
@@ -150,6 +153,10 @@ static const MethodInfo *transformLocalEulerSet;
 static const MethodInfo *transformLocalEulerGet;
 static const MethodInfo *transformParentGet;
 static const MethodInfo *transformParentSet;
+static const MethodInfo *saberTypeGet;
+static const MethodInfo *componentGetGameObject;
+static const MethodInfo *componentGetComponentsInChildren;
+static const MethodInfo *gameObjectSetActive;
 static void *asyncBundle;
 void GrabMethods();
 MAKE_HOOK(set_active_scene, set_active_scene_offset, bool, int scene)
@@ -182,7 +189,6 @@ MAKE_HOOK(set_active_scene, set_active_scene_offset, bool, int scene)
 
 void *customSaberAssetBundle;
 void *customSaberGameObject;
-void *customSaberGameObjectTransform;
 
 MAKE_HOOK(gameplay_core_scene_setup_start, gameplay_core_scene_setup_start_offset, void, void *self)
 {
@@ -204,6 +210,7 @@ MAKE_HOOK(gameplay_core_scene_setup_start, gameplay_core_scene_setup_start_offse
     customSaberGameObject = nullptr;
 }
 
+void ReplaceSaber(void *, void *);
 MAKE_HOOK(saber_start, saber_start_offset, void, void *self)
 {
     saber_start(self);
@@ -214,8 +221,9 @@ MAKE_HOOK(saber_start, saber_start_offset, void, void *self)
     {
         customSaberAssetBundle = runtime_invoke(assetBundleFromAsync, asyncBundle, nullptr, &exception);
         log("Grabbed Asset bundle");
+        asyncBundle = nullptr;
     }
-    if(customSaberGameObject == nullptr)
+    if (customSaberGameObject == nullptr && customSaberAssetBundle != nullptr)
     {
         cs_string *assetPath = createcsstr("_customsaber");
         void *assetPathParams[] = {assetPath, type_get_object(class_get_type(gameObjectClass))};
@@ -243,42 +251,13 @@ MAKE_HOOK(saber_start, saber_start_offset, void, void *self)
         void *instantiateParams[] = {customSaberObject};
         customSaberGameObject = runtime_invoke(objectInstantiate, nullptr, instantiateParams, &exception);
         log("Instantiated Asset Object");
-
-        customSaberGameObjectTransform = runtime_invoke(getGameObjectTransform, customSaberGameObject, nullptr, &exception);
-        log("Get GameObject Transform");
     }
-        //Set Stuff after getting object Transform
-    /* 
-    Vector3 zero{zero.x = 0, zero.y = 4, zero.z = 0};
-    Quaternion rot = ToQuaternion(0, 0, 0);
 
-    cs_string *parentName = createcsstr("MainScreen");
-    void *parentFindParams[] = {parentName};
-    void *parentObj = runtime_invoke(findGameObject, nullptr, parentFindParams, &exception);
-    log("Called Find for Parent Object");
-    void *parentTransform = runtime_invoke(getGameObjectTransform, parentObj, nullptr, &exception);
-    log("Get Parent Transform");
-
-    cs_string *rightSaberName = createcsstr("RightSaber");
-    void *rightParams[] = {rightSaberName};
-    void *rightSaberTransform = runtime_invoke(findTransform, saberObjTransform, rightParams, &exception);
-    log("Find RightSaber Transform");
-
-    runtime_invoke(transformParentSet, rightSaberTransform, &parentTransform, &exception);
-    log("Set RightSaber Parent");
-
-    void *setPosParam[] = {&zero};
-    runtime_invoke(transformPosSet, rightSaberTransform, setPosParam, &exception);
-
-    Il2CppObject *parentPos = runtime_invoke(transformPosGet, saberObjTransform, nullptr, &exception);
-    log("Get Parent Position");
-
-    Vector3 *ParentPos = reinterpret_cast<Vector3 *>(object_unbox(parentPos));
-    log("Parent Position: %f %f %f", ParentPos->x, ParentPos->y, ParentPos->z);
-    log("Set RightSaber Position");
-    */
-
-
+    if (customSaberGameObject != nullptr)
+    {
+        log("Replacing Saber with Custom Saber");
+        ReplaceSaber(self, customSaberGameObject);
+    }
 }
 __attribute__((constructor)) void lib_main()
 {
@@ -318,29 +297,34 @@ void GrabMethods()
         transformClass = GetClassFromName("UnityEngine", "Transform");
     if (asyncOperationClass == nullptr)
         asyncOperationClass = GetClassFromName("UnityEngine", "AsyncOperation");
+    if (saberClass == nullptr)
+        saberClass = GetClassFromName("", "Saber");
+    if (componentClass == nullptr)
+        componentClass = GetClassFromName("UnityEngine", "Component");
+    if (meshFilterClass == nullptr)
+        meshFilterClass = GetClassFromName("UnityEngine", "MeshFilter");
+
     if (assetBundleFromFileAsync == nullptr)
         assetBundleFromFileAsync = get_method_from_name(assetBundleClass, "LoadFromFileAsync", 1);
-
     if (assetBundleFromAsync == nullptr)
         assetBundleFromAsync = get_method_from_name(assetBundleCreateRequestClass, "get_assetBundle", 0);
-
     if (loadAssetAsync == nullptr)
         loadAssetAsync = get_method_from_name(assetBundleClass, "LoadAssetAsync", 2);
-
     if (getAsset == nullptr)
         getAsset = get_method_from_name(assetBundleRequestClass, "get_asset", 0);
-
     if (objectInstantiate == nullptr)
         objectInstantiate = get_method_from_name(objectClass, "Instantiate", 1);
 
     if (findGameObject == nullptr)
         findGameObject = get_method_from_name(gameObjectClass, "Find", 1);
-
     if (getGameObjectTransform == nullptr)
         getGameObjectTransform = get_method_from_name(gameObjectClass, "get_transform", 0);
+    if (gameObjectSetActive == nullptr)
+        gameObjectSetActive = get_method_from_name(gameObjectClass, "SetActive", 1);
     if (findTransform == nullptr)
         findTransform = get_method_from_name(transformClass, "Find", 1);
     if (transformPosGet == nullptr)
+
         transformPosGet = get_method_from_name(transformClass, "get_position", 0);
     if (transformPosSet == nullptr)
         transformPosSet = get_method_from_name(transformClass, "set_position", 1);
@@ -360,8 +344,63 @@ void GrabMethods()
         transformParentGet = get_method_from_name(transformClass, "get_parent", 0);
     if (transformParentSet == nullptr)
         transformParentSet = get_method_from_name(transformClass, "set_parent", 1);
+
     if (asyncOperationSetAllowSceneActivation == nullptr)
         asyncOperationSetAllowSceneActivation = get_method_from_name(asyncOperationClass, "set_allowSceneActivation", 1);
     if (asyncOperationGetIsDone == nullptr)
         asyncOperationGetIsDone = get_method_from_name(asyncOperationClass, "get_isDone", 0);
+
+    if (saberTypeGet == nullptr)
+        saberTypeGet = get_method_from_name(saberClass, "get_saberType", 0);
+
+    if (componentGetGameObject == nullptr)
+        componentGetGameObject = get_method_from_name(componentClass, "get_gameObject", 0);
+    if (componentGetComponentsInChildren == nullptr)
+        componentGetComponentsInChildren = get_method_from_name(componentClass, "GetComponentsInChildren", 2);
+}
+
+void ReplaceSaber(void *saber, void *customSaberObject)
+{
+    Il2CppException *exception;
+    //Get GameObject for Saber
+    void *saberGameObject = runtime_invoke(componentGetGameObject, saber, nullptr, &exception);
+    log("Got Saber GameObject");
+    //Get Transform for CustomSaberObject
+    void *customSaberGameObjectTransform = runtime_invoke(getGameObjectTransform, customSaberGameObject, nullptr, &exception);
+    log("Got CustomSaberObject Transform");
+    //Check Type of Saber
+    int saberType = *(reinterpret_cast<int *>(object_unbox(runtime_invoke(saberTypeGet, saber, nullptr, &exception))));
+    cs_string *saberName = createcsstr((saberType == 0 ? "LeftSaber" : "RightSaber"));
+    void *saberChildParams[] = {saberName};
+    void *childTransform = runtime_invoke(findTransform, customSaberGameObjectTransform, saberChildParams, &exception);
+    log("Got Child Saber Transform");
+    void *parentSaberTransform = runtime_invoke(getGameObjectTransform, saberGameObject, nullptr, &exception);
+    log("Got Parent Saber Transform");
+    void *parentPos = object_unbox(runtime_invoke(transformPosGet, parentSaberTransform, nullptr, &exception));
+    void *parentRot = object_unbox(runtime_invoke(transformEulerGet, parentSaberTransform, nullptr, &exception));
+    log("Got Parent Saber Transform Position and Rotation");
+    //   Vector3 *ParentPos = reinterpret_cast<Vector3 *>(object_unbox(parentRot));
+    //  log("Parent rotation: %f %f %f", ParentPos->x, ParentPos->y, ParentPos->z);
+    //Disable Original Saber Mesh
+    log("Disabling Original Saber Meshes");
+    bool getInactive = false;
+    void* getMeshFiltersParams[] = {type_get_object(class_get_type(meshFilterClass)), &getInactive};
+    Array<void*>* meshfilters =reinterpret_cast<Array<void*>*>(runtime_invoke(componentGetComponentsInChildren, parentSaberTransform, getMeshFiltersParams, &exception));
+    for(int i = 0; i < meshfilters->Length(); i++)
+    {
+        log("Getting Filter Gameobject");
+        void* filterObject = runtime_invoke(componentGetGameObject, meshfilters->values[i], nullptr, &exception);
+        log("Disabling Filter");
+        void* disableParam[] = {&getInactive};
+        runtime_invoke(gameObjectSetActive, filterObject, disableParam, &exception);
+    }
+        log("Disabled Original Saber Meshes");
+    //Place Custom Sabers
+    runtime_invoke(transformParentSet, childTransform, &parentSaberTransform, &exception);
+    log("Set Child Parent");
+    runtime_invoke(transformPosSet, childTransform, &parentPos, &exception);
+    log("Set Child Pos");
+    runtime_invoke(transformEulerSet, childTransform, &parentRot, &exception);
+    log("Set Child Rot");
+
 }
