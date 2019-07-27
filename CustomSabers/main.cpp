@@ -188,6 +188,7 @@ MAKE_HOOK(solo_free_play, 0x4DBD74, void, void *self, bool firstActivation, int 
         objectClass = GetClassFromName("UnityEngine", "Object");
     if (transformClass == nullptr)
         transformClass = GetClassFromName("UnityEngine", "Transform");
+
     if (assetBundleFromFileAsync == nullptr)
         assetBundleFromFileAsync = get_method_from_name(assetBundleClass, "LoadFromFileAsync", 1);
 
@@ -248,14 +249,31 @@ MAKE_HOOK(solo_free_play, 0x4DBD74, void, void *self, bool firstActivation, int 
     //    log("Grabbed Asset Async Request");
     void *customSaberObject = runtime_invoke(getAsset, assetAsync, nullptr, &exception);
     log("Grabbed Asset Object");
-    //Attempt to Instaniate GameObject to 0,0,0
-    Vector3 zero{zero.x = 0, zero.y = 0, zero.z = 0};
-    Quaternion rot = ToQuaternion(0, 0, 0);
 
-
+    //Attempt to Instaniate GameObject
     void *instantiateParams[] = {customSaberObject};
     void *instantiatedObject = runtime_invoke(objectInstantiate, nullptr, instantiateParams, &exception);
     log("Instantiated Asset Object");
+
+    void* saberObjTransform = runtime_invoke(getGameObjectTransform, instantiatedObject, nullptr, &exception);
+    log("Get GameObject Transform");
+
+    if(asyncBundle == nullptr)
+        log("null async bundle");
+    if(assetBundle == nullptr)
+        log("null asset bundle");
+    if(customSaberObject == nullptr)
+        log("null asset object");
+    if(instantiatedObject == nullptr)
+        log("null instantiation");
+    if(saberObjTransform == nullptr)
+        log("null Instantiated Obj Transform");
+
+
+    //Set Stuff after getting object Transform
+
+    Vector3 zero{zero.x = 0, zero.y = 0, zero.z = 0};
+    Quaternion rot = ToQuaternion(0, 0, 0);
 
     cs_string *parentName = createcsstr("MainScreen");
     void *parentFindParams[] = {parentName};
@@ -264,9 +282,6 @@ MAKE_HOOK(solo_free_play, 0x4DBD74, void, void *self, bool firstActivation, int 
     void* parentTransform = runtime_invoke(getGameObjectTransform, parentObj, nullptr, &exception);
     log("Get Parent Transform");
 
-
-    void* saberObjTransform = runtime_invoke(getGameObjectTransform, instantiatedObject, nullptr, &exception);
-    log("Get GameObject Transform");
 
     cs_string *rightSaberName = createcsstr("RightSaber");
     void *rightParams[] = {rightSaberName};
