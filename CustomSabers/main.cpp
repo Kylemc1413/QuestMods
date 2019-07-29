@@ -20,7 +20,6 @@
 #define set_active_scene_offset 0xD902B4
 #define gameplay_core_scene_setup_start_offset 0x5268D0
 #define saber_start_offset 0x538890
-
 #define MOD_ID "CustomSabers"
 #define VERSION "0.0.1"
 using il2cpp_utils::createcsstr;
@@ -30,10 +29,10 @@ static Il2CppObject *(*runtime_invoke)(const MethodInfo *, void *, void **, Il2C
 static const Il2CppType *(*class_get_type)(Il2CppClass *) = nullptr;
 static Il2CppObject *(*type_get_object)(const Il2CppType *) = nullptr;
 static void *(*object_unbox)(Il2CppObject *) = nullptr;
+void *GetFirstObjectOfType(Il2CppClass *);
 template <class T>
 struct List : Il2CppObject
 {
-
     Array<T> *items;
     int size;
     int version;    // ?
@@ -137,6 +136,8 @@ static Il2CppClass *colorManagerClass;
 static Il2CppClass *rendererClass;
 static Il2CppClass *materialClass;
 static Il2CppClass *shaderClass;
+static Il2CppClass *beatmapObjectSpawnControllerClass;
+static Il2CppClass *actionThree;
 static const MethodInfo *sceneNameMethodInfo;
 static const MethodInfo *assetBundleFromFileAsync;
 static const MethodInfo *assetBundleFromAsync;
@@ -169,6 +170,7 @@ static const MethodInfo *materialGetFloat;
 static const MethodInfo *materialHasProperty;
 static const MethodInfo *materialSetColor;
 static const MethodInfo *shaderPropertyToID;
+static const MethodInfo *addSpawnControllerNoteWasCut;
 static void *asyncBundle;
 void GrabMethods();
 MAKE_HOOK(set_active_scene, set_active_scene_offset, bool, int scene)
@@ -325,6 +327,10 @@ void GrabMethods()
         materialClass = GetClassFromName("UnityEngine", "Material");
     if (shaderClass == nullptr)
         shaderClass = GetClassFromName("UnityEngine", "Shader");
+    if (beatmapObjectSpawnControllerClass == nullptr)
+        beatmapObjectSpawnControllerClass = GetClassFromName("", "BeatmapObjectSpawnController");
+    if (actionThree == nullptr)
+        actionThree = GetClassFromName("System", "Action`3");
 
     if (assetBundleFromFileAsync == nullptr)
         assetBundleFromFileAsync = get_method_from_name(assetBundleClass, "LoadFromFileAsync", 1);
@@ -395,124 +401,138 @@ void GrabMethods()
 
     if (colorManagerColorForSaberType == nullptr)
         colorManagerColorForSaberType = get_method_from_name(colorManagerClass, "ColorForSaberType", 1);
+    if (addSpawnControllerNoteWasCut == nullptr)
+        addSpawnControllerNoteWasCut = get_method_from_name(beatmapObjectSpawnControllerClass, "add_noteWasCutEvent", 1);
 }
 
+void SpawnControllerNoteWasCut(void *BeatmapObjectSpawnController, void *NoteController, void *NoteCutInfo);
 void ReplaceSaber(void *saber, void *customSaberObject)
 {
     Il2CppException *exception;
     //Get GameObject for Saber
     void *saberGameObject = runtime_invoke(componentGetGameObject, saber, nullptr, &exception);
-  //  log("Got Saber GameObject");
+    //  log("Got Saber GameObject");
     //Get Transform for CustomSaberObject
     void *customSaberGameObjectTransform = runtime_invoke(getGameObjectTransform, customSaberGameObject, nullptr, &exception);
-   // log("Got CustomSaberObject Transform");
+    // log("Got CustomSaberObject Transform");
     //Check Type of Saber
     int saberType = *(reinterpret_cast<int *>(object_unbox(runtime_invoke(saberTypeGet, saber, nullptr, &exception))));
     cs_string *saberName = createcsstr((saberType == 0 ? "LeftSaber" : "RightSaber"));
     void *saberChildParams[] = {saberName};
     void *childTransform = runtime_invoke(findTransform, customSaberGameObjectTransform, saberChildParams, &exception);
- //   log("Got Child Saber Transform");
+    //   log("Got Child Saber Transform");
     void *parentSaberTransform = runtime_invoke(getGameObjectTransform, saberGameObject, nullptr, &exception);
-  //  log("Got Parent Saber Transform");
+    //  log("Got Parent Saber Transform");
     void *parentPos = object_unbox(runtime_invoke(transformPosGet, parentSaberTransform, nullptr, &exception));
     void *parentRot = object_unbox(runtime_invoke(transformEulerGet, parentSaberTransform, nullptr, &exception));
-  //  log("Got Parent Saber Transform Position and Rotation");
+    //  log("Got Parent Saber Transform Position and Rotation");
     //   Vector3 *ParentPos = reinterpret_cast<Vector3 *>(object_unbox(parentRot));
     //  log("Parent rotation: %f %f %f", ParentPos->x, ParentPos->y, ParentPos->z);
     //Disable Original Saber Mesh
-  //  log("Disabling Original Saber Meshes");
+    //  log("Disabling Original Saber Meshes");
     bool getInactive = false;
     void *getMeshFiltersParams[] = {type_get_object(class_get_type(meshFilterClass)), &getInactive};
     Array<void *> *meshfilters = reinterpret_cast<Array<void *> *>(runtime_invoke(componentGetComponentsInChildren, parentSaberTransform, getMeshFiltersParams, &exception));
     for (int i = 0; i < meshfilters->Length(); i++)
     {
-  //      log("Getting Filter Gameobject");
+        //      log("Getting Filter Gameobject");
         void *filterObject = runtime_invoke(componentGetGameObject, meshfilters->values[i], nullptr, &exception);
-  //      log("Disabling Filter");
+        //      log("Disabling Filter");
         void *disableParam[] = {&getInactive};
         runtime_invoke(gameObjectSetActive, filterObject, disableParam, &exception);
     }
     log("Disabled Original Saber Meshes");
     //Place Custom Sabers
     runtime_invoke(transformParentSet, childTransform, &parentSaberTransform, &exception);
- //   log("Set Child Parent");
+    //   log("Set Child Parent");
     runtime_invoke(transformPosSet, childTransform, &parentPos, &exception);
- //   log("Set Child Pos");
+    //   log("Set Child Pos");
     runtime_invoke(transformEulerSet, childTransform, &parentRot, &exception);
-  //  log("Set Child Rot");
+    //  log("Set Child Rot");
     log("Placed Custom Saber");
     //Match ColorManager Colors
     log("Attempting to set colors of Custom Saber to colorManager Colors");
-    void *allcolorManagersParams[] = {type_get_object(class_get_type(colorManagerClass))};
-    Array<void *> *colorManagers = reinterpret_cast<Array<void *> *>(runtime_invoke(resourcesFindObjectsOfTypeAll, nullptr, allcolorManagersParams, &exception));
-    if (colorManagers != nullptr)
+    void *colorManager = GetFirstObjectOfType(colorManagerClass);
+    if (colorManager != nullptr)
     {
-   //     log("Getting Color Manager");
-        void *colorManager = colorManagers->values[0];
-        if (colorManager != nullptr)
+        //       log("Got Color Manager");
+        void *colorForSaberTypeParams[] = {&saberType};
+        Color colorForType = *(reinterpret_cast<Color *>(object_unbox(runtime_invoke(colorManagerColorForSaberType, colorManager, colorForSaberTypeParams, &exception))));
+        //       log("Got Color for type");
+        void *getRendererParams[] = {type_get_object(class_get_type(rendererClass)), &getInactive};
+        Array<void *> *renderers = reinterpret_cast<Array<void *> *>(runtime_invoke(componentGetComponentsInChildren, childTransform, getRendererParams, &exception));
+        //      log("Got Renderers %s", renderers == nullptr ? "False" : "true");
+        for (int i = 0; i < renderers->Length(); ++i)
         {
-     //       log("Got Color Manager");
-            void *colorForSaberTypeParams[] = {&saberType};
-            Color colorForType = *(reinterpret_cast<Color *>(object_unbox(runtime_invoke(colorManagerColorForSaberType, colorManager, colorForSaberTypeParams, &exception))));
-     //       log("Got Color for type");
-            void *getRendererParams[] = {type_get_object(class_get_type(rendererClass)), &getInactive};
-            Array<void *> *renderers = reinterpret_cast<Array<void *> *>(runtime_invoke(componentGetComponentsInChildren, childTransform, getRendererParams, &exception));
-      //      log("Got Renderers %s", renderers == nullptr ? "False" : "true");
-            for (int i = 0; i < renderers->Length(); ++i)
+            //        log("Checking Renderer");
+            Array<void *> *sharedMaterials = reinterpret_cast<Array<void *> *>(runtime_invoke(rendererGetSharedMaterials, renderers->values[i], nullptr, &exception));
+            for (int j = 0; j < sharedMaterials->Length(); ++j)
             {
-        //        log("Checking Renderer");
-                Array<void *> *sharedMaterials = reinterpret_cast<Array<void *> *>(runtime_invoke(rendererGetSharedMaterials, renderers->values[i], nullptr, &exception));
-                for (int j = 0; j < sharedMaterials->Length(); ++j)
+                //           log("Checking Material");
+                cs_string *glowString = createcsstr("_Glow");
+                cs_string *bloomString = createcsstr("_Bloom");
+                cs_string *materialColor = createcsstr("_Color");
+                void *glowStringParams[] = {glowString};
+                void *bloomStringParams[] = {bloomString};
+                int glowInt = *(reinterpret_cast<int *>(object_unbox(runtime_invoke(shaderPropertyToID, nullptr, glowStringParams, &exception))));
+                int bloomInt = *(reinterpret_cast<int *>(object_unbox(runtime_invoke(shaderPropertyToID, nullptr, bloomStringParams, &exception))));
+                void *glowIntParams[] = {&glowInt};
+                void *bloomIntParams[] = {&bloomInt};
+                void *materialColorParams[] = {materialColor, &colorForType};
+                bool setColor = false;
+                bool hasGlow = runtime_invoke(materialHasProperty, sharedMaterials->values[j], glowIntParams, &exception);
+                if (hasGlow)
                 {
-         //           log("Checking Material");
-                    cs_string *glowString = createcsstr("_Glow");
-                    cs_string *bloomString = createcsstr("_Bloom");
-                    cs_string *materialColor = createcsstr("_Color");
-                    void *glowStringParams[] = {glowString};
-                    void *bloomStringParams[] = {bloomString};
-                    int glowInt = *(reinterpret_cast<int *>(object_unbox(runtime_invoke(shaderPropertyToID, nullptr, glowStringParams, &exception))));
-                    int bloomInt = *(reinterpret_cast<int *>(object_unbox(runtime_invoke(shaderPropertyToID, nullptr, bloomStringParams, &exception))));
-                    void *glowIntParams[] = {&glowInt};
-                    void *bloomIntParams[] = {&bloomInt};
-                    void *materialColorParams[] = {materialColor, &colorForType};
-                    bool setColor = false;
-                    bool hasGlow = runtime_invoke(materialHasProperty, sharedMaterials->values[j], glowIntParams, &exception);
-                    if (hasGlow)
+                    //         log("Has Glow, getting float");
+                    float glowFloat = *(reinterpret_cast<float *>(object_unbox(runtime_invoke(materialGetFloat, sharedMaterials->values[j], glowIntParams, &exception))));
+                    //          log("Glow Float %f", glowFloat);
+                    if (glowFloat > 0)
+                        setColor = true;
+                }
+                if (!setColor)
+                {
+                    bool hasBloom = runtime_invoke(materialHasProperty, sharedMaterials->values[j], bloomIntParams, &exception);
+                    if (hasBloom)
                     {
-               //         log("Has Glow, getting float");
-                        float glowFloat = *(reinterpret_cast<float *>(object_unbox(runtime_invoke(materialGetFloat, sharedMaterials->values[j], glowIntParams, &exception))));
-              //          log("Glow Float %f", glowFloat);
-                        if (glowFloat > 0)
+                        //            log("Has Bloom, getting float");
+                        float bloomFloat = *(reinterpret_cast<float *>(object_unbox(runtime_invoke(materialGetFloat, sharedMaterials->values[j], bloomIntParams, &exception))));
+                        //           log("Bloom Float %f", bloomFloat);
+                        if (bloomFloat > 0)
                             setColor = true;
                     }
-                    if (!setColor)
-                    {
-                        bool hasBloom = runtime_invoke(materialHasProperty, sharedMaterials->values[j], bloomIntParams, &exception);
-                        if (hasBloom)
-                        {
-                //            log("Has Bloom, getting float");
-                            float bloomFloat = *(reinterpret_cast<float *>(object_unbox(runtime_invoke(materialGetFloat, sharedMaterials->values[j], bloomIntParams, &exception))));
-                 //           log("Bloom Float %f", bloomFloat);
-                            if (bloomFloat > 0)
-                                setColor = true;
-                        }
-                    }
-                    if (setColor)
-                    {
-              //          log("Setting Color");
-                        runtime_invoke(materialSetColor, sharedMaterials->values[j], materialColorParams, &exception);
-                    }
+                }
+                if (setColor)
+                {
+                    //          log("Setting Color");
+                    runtime_invoke(materialSetColor, sharedMaterials->values[j], materialColorParams, &exception);
                 }
             }
-        }
-        else
-        {
-            log("null colorManager");
         }
     }
     else
     {
-        log("null colorManagers");
+        log("null colorManager");
     }
+
     log("Finished With Saber");
+}
+
+void SpawnControllerNoteWasCut(void *BeatmapObjectSpawnController, void *NoteController, void *NoteCutInfo)
+{
+    log("Note Was Cut Callback");
+}
+
+void *GetFirstObjectOfType(Il2CppClass *klass)
+{
+    Il2CppException *exception;
+    void *params[] = {type_get_object(class_get_type(klass))};
+    Array<void *> *objects = reinterpret_cast<Array<void *> *>(runtime_invoke(resourcesFindObjectsOfTypeAll, nullptr, params, &exception));
+    if (objects != nullptr)
+    {
+        return objects->values[0];
+    }
+    else
+    {
+        return nullptr;
+    }
 }
