@@ -30,7 +30,7 @@
 #define obstacle_controller_init_offset 0x9E252C
 
 #define MOD_ID "MappingExtenions"
-#define VERSION "0.10.0"
+#define VERSION "0.10.1"
 
 using il2cpp_utils::GetClassFromName;
 template <class T>
