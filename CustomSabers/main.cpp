@@ -337,7 +337,6 @@ void GrabMethods()
     if (findTransform == nullptr)
         findTransform = class_get_method_from_name(transformClass, "Find", 1);
     if (transformPosGet == nullptr)
-
         transformPosGet = class_get_method_from_name(transformClass, "get_position", 0);
     if (transformPosSet == nullptr)
         transformPosSet = class_get_method_from_name(transformClass, "set_position", 1);
@@ -394,66 +393,44 @@ void SpawnControllerNoteWasCut(void *BeatmapObjectSpawnController, void *NoteCon
 void ReplaceSaber(void *saber, void *customSaberObject)
 {
     Il2CppException *exception;
-    //Get GameObject for Saber
     void *saberGameObject = runtime_invoke(componentGetGameObject, saber, nullptr, &exception);
-    //  log(INFO,"Got Saber GameObject");
-    //Get Transform for CustomSaberObject
     void *customSaberGameObjectTransform = runtime_invoke(getGameObjectTransform, customSaberGameObject, nullptr, &exception);
-    // log(INFO,"Got CustomSaberObject Transform");
-    //Check Type of Saber
     int saberType = *(reinterpret_cast<int *>(object_unbox(runtime_invoke(saberTypeGet, saber, nullptr, &exception))));
     Il2CppString *saberName = createcsstr((saberType == 0 ? "LeftSaber" : "RightSaber"));
     void *saberChildParams[] = {saberName};
     void *childTransform = runtime_invoke(findTransform, customSaberGameObjectTransform, saberChildParams, &exception);
-    //   log(INFO,"Got Child Saber Transform");
     void *parentSaberTransform = runtime_invoke(getGameObjectTransform, saberGameObject, nullptr, &exception);
-    //  log(INFO,"Got Parent Saber Transform");
     void *parentPos = object_unbox(runtime_invoke(transformPosGet, parentSaberTransform, nullptr, &exception));
     void *parentRot = object_unbox(runtime_invoke(transformEulerGet, parentSaberTransform, nullptr, &exception));
-    //  log(INFO,"Got Parent Saber Transform Position and Rotation");
-    //   Vector3 *ParentPos = reinterpret_cast<Vector3 *>(object_unbox(parentRot));
-    //  log(INFO,"Parent rotation: %f %f %f", ParentPos->x, ParentPos->y, ParentPos->z);
-    //Disable Original Saber Mesh
-    //  log(INFO,"Disabling Original Saber Meshes");
+
     bool getInactive = false;
     void *getMeshFiltersParams[] = {type_get_object(class_get_type(meshFilterClass)), &getInactive};
     Array<void *> *meshfilters = reinterpret_cast<Array<void *> *>(runtime_invoke(componentGetComponentsInChildren, parentSaberTransform, getMeshFiltersParams, &exception));
     for (int i = 0; i < meshfilters->Length(); i++)
     {
-        //      log(INFO,"Getting Filter Gameobject");
         void *filterObject = runtime_invoke(componentGetGameObject, meshfilters->values[i], nullptr, &exception);
-        //      log(INFO,"Disabling Filter");
         void *disableParam[] = {&getInactive};
         runtime_invoke(gameObjectSetActive, filterObject, disableParam, &exception);
     }
     log(INFO, "Disabled Original Saber Meshes");
-    //Place Custom Sabers
+
     runtime_invoke(transformParentSet, childTransform, &parentSaberTransform, &exception);
-    //   log(INFO,"Set Child Parent");
     runtime_invoke(transformPosSet, childTransform, &parentPos, &exception);
-    //   log(INFO,"Set Child Pos");
     runtime_invoke(transformEulerSet, childTransform, &parentRot, &exception);
-    //  log(INFO,"Set Child Rot");
     log(INFO, "Placed Custom Saber");
-    //Match ColorManager Colors
     log(INFO, "Attempting to set colors of Custom Saber to colorManager Colors");
     void *colorManager = GetFirstObjectOfType(colorManagerClass);
     if (colorManager != nullptr)
     {
-        //       log(INFO,"Got Color Manager");
         void *colorForSaberTypeParams[] = {&saberType};
         Color colorForType = *(reinterpret_cast<Color *>(object_unbox(runtime_invoke(colorManagerColorForSaberType, colorManager, colorForSaberTypeParams, &exception))));
-        //       log(INFO,"Got Color for type");
         void *getRendererParams[] = {type_get_object(class_get_type(rendererClass)), &getInactive};
         Array<void *> *renderers = reinterpret_cast<Array<void *> *>(runtime_invoke(componentGetComponentsInChildren, childTransform, getRendererParams, &exception));
-        //      log(INFO,"Got Renderers %s", renderers == nullptr ? "False" : "true");
         for (int i = 0; i < renderers->Length(); ++i)
         {
-            //        log(INFO,"Checking Renderer");
             Array<void *> *sharedMaterials = reinterpret_cast<Array<void *> *>(runtime_invoke(rendererGetSharedMaterials, renderers->values[i], nullptr, &exception));
             for (int j = 0; j < sharedMaterials->Length(); ++j)
             {
-                //           log(INFO,"Checking Material");
                 Il2CppString *glowString = createcsstr("_Glow");
                 Il2CppString *bloomString = createcsstr("_Bloom");
                 Il2CppString *materialColor = createcsstr("_Color");
@@ -468,9 +445,7 @@ void ReplaceSaber(void *saber, void *customSaberObject)
                 bool hasGlow = runtime_invoke(materialHasProperty, sharedMaterials->values[j], glowIntParams, &exception);
                 if (hasGlow)
                 {
-                    //         log(INFO,"Has Glow, getting float");
                     float glowFloat = *(reinterpret_cast<float *>(object_unbox(runtime_invoke(materialGetFloat, sharedMaterials->values[j], glowIntParams, &exception))));
-                    //          log(INFO,"Glow Float %f", glowFloat);
                     if (glowFloat > 0)
                         setColor = true;
                 }
@@ -479,16 +454,13 @@ void ReplaceSaber(void *saber, void *customSaberObject)
                     bool hasBloom = runtime_invoke(materialHasProperty, sharedMaterials->values[j], bloomIntParams, &exception);
                     if (hasBloom)
                     {
-                        //            log(INFO,"Has Bloom, getting float");
                         float bloomFloat = *(reinterpret_cast<float *>(object_unbox(runtime_invoke(materialGetFloat, sharedMaterials->values[j], bloomIntParams, &exception))));
-                        //           log(INFO,"Bloom Float %f", bloomFloat);
                         if (bloomFloat > 0)
                             setColor = true;
                     }
                 }
                 if (setColor)
                 {
-                    //          log(INFO,"Setting Color");
                     runtime_invoke(materialSetColor, sharedMaterials->values[j], materialColorParams, &exception);
                 }
             }
