@@ -12,9 +12,6 @@
 #include "../beatsaber-hook/shared/inline-hook/inlineHook.h"
 #include "../beatsaber-hook/shared/utils/utils.h"
 
-#undef log
-#define log(...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[MappingExtensions v0.10.0] " __VA_ARGS__)
-
 //#define line_y_pos_for_line_layer_offset 0x4F5AC0
 #define spawn_flying_score_offset 0x51CE00
 #define get_note_offset_offset 0x4F6EB8
@@ -32,6 +29,8 @@
 
 #define obstacle_controller_init_offset 0x9E252C
 
+#define MOD_ID "MappingExtenions"
+#define VERSION "0.10.0"
 //extern "C" void * /* to be casted to Array */ il2cpp_array_new(Class *klass, int32_t len);
 //extern "C" Class * /* to be casted to Array */ il2cpp_class_from_type(void *Il2CppType_type);
 using il2cpp_utils::GetClassFromName;
@@ -265,7 +264,7 @@ struct BeatmapObjectSpawnController : UnityObject
 /* 
 MAKE_HOOK(line_y_pos_for_line_layer, line_y_pos_for_line_layer_offset, float,int lineLayer)
 {
-    log("Called line_y_pos_for_line_layer Hook");
+    log(INFO,"Called line_y_pos_for_line_layer Hook");
     line_y_pos_for_line_layer(lineLayer);
     return (float)600;
 }
@@ -357,7 +356,7 @@ float LineYPosForLineLayer(int noteLineLayer, float topLinesYPos, float upperLin
 float HighestJumpPosYForLineLayer(int lineLayer, float topLinesHighestJumpPosY, float upperLinesHighestJumpPosY, float baseLinesHighestJumpPosY, float globalYJumpOffset)
 {
     float delta = topLinesHighestJumpPosY - upperLinesHighestJumpPosY;
-    //  log("Global offset: %f", globalYJumpOffset);
+    //  log(INFO,"Global offset: %f", globalYJumpOffset);
     float result;
     switch (lineLayer)
     {
@@ -422,33 +421,33 @@ bool CompareBeatmapObjects(BeatmapObjectData *x, BeatmapObjectData *y)
 
 MAKE_HOOK(line_y_pos, 0x12FC1F0, float, BeatmapObjectSpawnController *self, int lineLayer)
 {
-    log("line_y_pos hook called");
+    log(INFO, "line_y_pos hook called");
     return line_y_pos(self, lineLayer);
 }
 MAKE_HOOK(jump_gravity_for_line_layer, jump_gravity_for_line_layer_offset, float, BeatmapObjectSpawnController *self, int lineLayer, int startLineLayer)
 {
-    //  log("jump_gravity_for_line_layer hook called");
+    //  log(INFO,"jump_gravity_for_line_layer hook called");
     float original = jump_gravity_for_line_layer(self, lineLayer, startLineLayer);
-    //  log("original %f", original);
+    //  log(INFO,"original %f", original);
     float result = (float)2 * (HighestJumpPosYForLineLayer(lineLayer, self->topLinesHighestJumpPosY, self->upperLinesHighestJumpPosY, self->baseLinesHighestJumpPosY, self->globalYJumpOffset) - LineYPosForLineLayer(startLineLayer, self->topLinesYPos, self->upperLinesYPos, self->baseLinesYPos)) / powf(self->jumpDistance / self->noteJumpMovementSpeed * 0.5, 2);
-    //  log("result %f jumpDis %f, njs %f", result, self->jumpDistance, self->noteJumpMovementSpeed);
+    //  log(INFO,"result %f jumpDis %f, njs %f", result, self->jumpDistance, self->noteJumpMovementSpeed);
     return result;
     //     return (float)2 * (HighestJumpPosYForLineLayer(lineLayer, self->globalYJumpOffset) - LineYPosForLineLayer(startLineLayer))
     //     / powf(self->jumpDistance / self->noteJumpMovementSpeed * 0.5, 2);
 }
 MAKE_HOOK(note_rotation, note_rotation_offset, Quaternion, int cutDirection)
 {
-    log("Called note_rotation Hook");
+    log(INFO, "Called note_rotation Hook");
 
     Quaternion result1 = note_rotation(cutDirection);
-    //  log("Original result %f, %f, %f, %f", result1.x, result1.y, result1.z, result1.w);
+    //  log(INFO,"Original result %f, %f, %f, %f", result1.x, result1.y, result1.z, result1.w);
     if (cutDirection >= 1000 && cutDirection <= 1360)
     {
         int angle = 1000 - cutDirection;
-        //    log("Quaternion Method: %s", il2cpp_class_get_methods(quaternionClass, i)->name);
+        //    log(INFO,"Quaternion Method: %s", il2cpp_class_get_methods(quaternionClass, i)->name);
         // il2cpp_runtime_invoke()
         Quaternion result = ToQuaternion(0, 0, angle);
-        //       log("Altered result %f, %f, %f, %f", result.x, result.y, result.z, result.w);
+        //       log(INFO,"Altered result %f, %f, %f, %f", result.x, result.y, result.z, result.w);
         return result;
     }
     else
@@ -459,18 +458,18 @@ MAKE_HOOK(note_rotation, note_rotation_offset, Quaternion, int cutDirection)
 
 MAKE_HOOK(note_rotation_mirror, note_rotation_mirror_offset, void, NoteData *self)
 {
-    //    log("Called note_rotation_mirror Hook CutDirection %i", self->noteCutDirection);
+    //    log(INFO,"Called note_rotation_mirror Hook CutDirection %i", self->noteCutDirection);
     int state = self->noteCutDirection;
     if (state >= 1000 && state <= 1360)
     {
         int newdir = 2360 - state;
         self->noteCutDirection = newdir;
-        //       log("Finished note_rotation_mirror Hook");
+        //       log(INFO,"Finished note_rotation_mirror Hook");
         return;
     }
     else
     {
-        //     log("Finished note_rotation_mirror Hook");
+        //     log(INFO,"Finished note_rotation_mirror Hook");
         return note_rotation_mirror(self);
     }
 }
@@ -608,7 +607,7 @@ void MirrorLineIndex(BeatmapObjectData *object, int type, int lineIndex)
 }
 MAKE_HOOK(mirror_transformed_data, mirror_transformed_data_offset, BeatmapData *, BeatmapData *beatmapData)
 {
-    log("Called mirror_transformed_data Hook");
+    log(INFO, "Called mirror_transformed_data Hook");
     for (int i = 0; i < beatmapData->beatmapLinesData->Length(); ++i)
     {
         for (int j = 0; j < beatmapData->beatmapLinesData->values[i]->beatmapObjectData->Length(); ++j)
@@ -616,7 +615,7 @@ MAKE_HOOK(mirror_transformed_data, mirror_transformed_data_offset, BeatmapData *
             int index = beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex;
             if (index > 3 || index < 0)
             {
-                log("Non-Standard Line indicies detected. Returning original data");
+                log(INFO, "Non-Standard Line indicies detected. Returning original data");
                 return beatmapData;
             }
         }
@@ -631,21 +630,21 @@ MAKE_HOOK(mirror_transformed_data, mirror_transformed_data_offset, BeatmapData *
             int id = beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->id;
             if (beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex > 3)
             {
-                //               log("Putting id: %i in map.", id);
+                //               log(INFO,"Putting id: %i in map.", id);
                 extendedLanesMap[id] = beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex;
                 beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex = 3;
             }
             if (beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex < 0)
             {
-                //           log("Putting id: %i in map.", id);
+                //           log(INFO,"Putting id: %i in map.", id);
                 extendedLanesMap[id] = beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex;
                 beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex = 0;
             }
         }
     }
-    log("Running original mirror function on modified data");
+    log(INFO,"Running original mirror function on modified data");
     BeatmapData *result = mirror_transformed_data(beatmapData);
-    log("Ran original mirror function on modified data");
+    log(INFO,"Ran original mirror function on modified data");
     for (int i = 0; i < result->beatmapLinesData->Length(); ++i)
     {
         for (int j = 0; j < result->beatmapLinesData->values[i]->beatmapObjectData->Length(); ++j)
@@ -656,7 +655,7 @@ MAKE_HOOK(mirror_transformed_data, mirror_transformed_data_offset, BeatmapData *
             {
                 auto item = result->beatmapLinesData->values[i]->beatmapObjectData->values[j];
 
-                //              log("Found id: %i in map. Time %f", id, item->time);
+                //              log(INFO,"Found id: %i in map. Time %f", id, item->time);
                 MirrorLineIndex(result->beatmapLinesData->values[i]->beatmapObjectData->values[j],
                                 result->beatmapLinesData->values[i]->beatmapObjectData->values[j]->beatmapObjectType, extendedLanesMap[id]);
             }
@@ -670,7 +669,7 @@ MAKE_HOOK(mirror_transformed_data, mirror_transformed_data_offset, BeatmapData *
             if (extendedLanesMap.find(rid) != extendedLanesMap.end())
             {
 
-                //              log("Restoring Original data for id: %i in map.", rid);
+                //              log(INFO,"Restoring Original data for id: %i in map.", rid);
                 beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex = extendedLanesMap[rid];
             }
         }
@@ -681,7 +680,7 @@ MAKE_HOOK(mirror_transformed_data, mirror_transformed_data_offset, BeatmapData *
 
 MAKE_HOOK(noarrows_transformed_data, noarrows_transformed_data_offset, BeatmapData *, BeatmapData *beatmapData, bool randomColors)
 {
-    log("Called noarrows_transformed_data Hook");
+    log(INFO, "Called noarrows_transformed_data Hook");
     std::map<int, int> extendedLanesMap;
     for (int i = 0; i < beatmapData->beatmapLinesData->Length(); ++i)
     {
@@ -690,13 +689,13 @@ MAKE_HOOK(noarrows_transformed_data, noarrows_transformed_data_offset, BeatmapDa
             int id = beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->id;
             if (beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex > 3)
             {
-                //               log("Putting id: %i in map.", id);
+                //               log(INFO,"Putting id: %i in map.", id);
                 extendedLanesMap[id] = beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex;
                 beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex = 3;
             }
             if (beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex < 0)
             {
-                //             log("Putting id: %i in map.", id);
+                //             log(INFO,"Putting id: %i in map.", id);
                 extendedLanesMap[id] = beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex;
                 beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex = 0;
             }
@@ -713,7 +712,7 @@ MAKE_HOOK(noarrows_transformed_data, noarrows_transformed_data_offset, BeatmapDa
             {
                 auto item = result->beatmapLinesData->values[i]->beatmapObjectData->values[j];
 
-                //          log("Found id: %i in map. Time %f", id, item->time);
+                //          log(INFO,"Found id: %i in map. Time %f", id, item->time);
                 result->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex = extendedLanesMap[id];
             }
         }
@@ -726,7 +725,7 @@ MAKE_HOOK(noarrows_transformed_data, noarrows_transformed_data_offset, BeatmapDa
             if (extendedLanesMap.find(rid) != extendedLanesMap.end())
             {
 
-                //          log("Restoring Original data for id: %i in map.", rid);
+                //          log(INFO,"Restoring Original data for id: %i in map.", rid);
                 beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex = extendedLanesMap[rid];
             }
         }
@@ -735,7 +734,7 @@ MAKE_HOOK(noarrows_transformed_data, noarrows_transformed_data_offset, BeatmapDa
 }
 MAKE_HOOK(obstacles_bombs_transformed_data, obstacles_bombs_transformed_data_offset, BeatmapData *, BeatmapData *beatmapData, int enabledObstaclesType, bool noBombs)
 {
-    log("Called obstacles_bombs_transformed_data Hook");
+    log(INFO, "Called obstacles_bombs_transformed_data Hook");
     std::map<int, int> extendedLanesMap;
     for (int i = 0; i < beatmapData->beatmapLinesData->Length(); ++i)
     {
@@ -744,13 +743,13 @@ MAKE_HOOK(obstacles_bombs_transformed_data, obstacles_bombs_transformed_data_off
             int id = beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->id;
             if (beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex > 3)
             {
-                //      log("Putting id: %i in map.", id);
+                //      log(INFO,"Putting id: %i in map.", id);
                 extendedLanesMap[id] = beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex;
                 beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex = 3;
             }
             if (beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex < 0)
             {
-                //          log("Putting id: %i in map.", id);
+                //          log(INFO,"Putting id: %i in map.", id);
                 extendedLanesMap[id] = beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex;
                 beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex = 0;
             }
@@ -767,7 +766,7 @@ MAKE_HOOK(obstacles_bombs_transformed_data, obstacles_bombs_transformed_data_off
             {
                 auto item = result->beatmapLinesData->values[i]->beatmapObjectData->values[j];
 
-                //         log("Found id: %i in map. Time %f", id, item->time);
+                //         log(INFO,"Found id: %i in map. Time %f", id, item->time);
                 result->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex = extendedLanesMap[id];
             }
         }
@@ -780,7 +779,7 @@ MAKE_HOOK(obstacles_bombs_transformed_data, obstacles_bombs_transformed_data_off
             if (extendedLanesMap.find(rid) != extendedLanesMap.end())
             {
 
-                //           log("Restoring Original data for id: %i in map.", rid);
+                //           log(INFO,"Restoring Original data for id: %i in map.", rid);
                 beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex = extendedLanesMap[rid];
             }
         }
@@ -790,7 +789,7 @@ MAKE_HOOK(obstacles_bombs_transformed_data, obstacles_bombs_transformed_data_off
 
 MAKE_HOOK(note_mirror, note_mirror_offset, void, NoteData *self, int lineCount)
 {
-    //   log("Called note_mirror Hook LineIndex %i, flipIndex %i", self->lineIndex, self->flipLineIndex);
+    //   log(INFO,"Called note_mirror Hook LineIndex %i, flipIndex %i", self->lineIndex, self->flipLineIndex);
     int lineIndex = self->lineIndex;
     int flipLineIndex = self->flipLineIndex;
     note_mirror(self, lineCount);
@@ -860,12 +859,12 @@ MAKE_HOOK(note_mirror, note_mirror_offset, void, NoteData *self, int lineCount)
             self->flipLineIndex = newlaneCount - diff - 1 - flipLineIndex;
         }
     }
-    //      log("Finished note_mirror Hook");
+    //      log(INFO,"Finished note_mirror Hook");
     return;
 }
 MAKE_HOOK(obstacle_mirror, obstacle_mirror_offset, void, ObstacleData *self, int lineCount)
 {
-    //log("Called obstacle_mirror Hook");
+    //log(INFO,"Called obstacle_mirror Hook");
     int __state = self->lineIndex;
     obstacle_mirror(self, lineCount);
 
@@ -920,7 +919,7 @@ MAKE_HOOK(obstacle_mirror, obstacle_mirror_offset, void, ObstacleData *self, int
 }
 MAKE_HOOK(spawn_flying_score, spawn_flying_score_offset, void, void *self, void *noteCutInfo, int noteLineIndex, int multiplier, Vector3 pos, Color color, void *saberAfterCutSwingRatingCounter)
 {
-    log("Called spawn_flying_score Hook");
+    log(INFO, "Called spawn_flying_score Hook");
     if (noteLineIndex > 3)
         noteLineIndex = 3;
     if (noteLineIndex < 0)
@@ -929,10 +928,10 @@ MAKE_HOOK(spawn_flying_score, spawn_flying_score_offset, void, void *self, void 
 }
 MAKE_HOOK(get_note_offset, get_note_offset_offset, Vector3, BeatmapObjectSpawnController *self, int noteLineIndex, int noteLineLayer)
 {
-    log("Called get_note_offset Hook");
-    //    log("NoteLineCount %f", self->noteLinesCount);
-    //        log("NoteLineDistance %f", self->noteLinesDistance);
-    //   log("NoteLineLayer %i", noteLineLayer);
+    log(INFO, "Called get_note_offset Hook");
+    //    log(INFO,"NoteLineCount %f", self->noteLinesCount);
+    //        log(INFO,"NoteLineDistance %f", self->noteLinesDistance);
+    //   log(INFO,"NoteLineLayer %i", noteLineLayer);
     Vector3 offset = get_note_offset(self, noteLineIndex, noteLineLayer);
     offset.x = 1.0;
     offset.y = 0;
@@ -954,39 +953,27 @@ MAKE_HOOK(get_note_offset, get_note_offset_offset, Vector3, BeatmapObjectSpawnCo
     offset.y = LineYPosForLineLayer(noteLineLayer, self->topLinesYPos, self->upperLinesYPos, self->baseLinesYPos);
     offset.z = 0;
 
-    //    log("Index: %i Layer: %i Offset: %f, %f, %f", noteLineIndex, noteLineLayer, offset.x, offset.y, offset.z);
+    //    log(INFO,"Index: %i Layer: %i Offset: %f, %f, %f", noteLineIndex, noteLineLayer, offset.x, offset.y, offset.z);
     return offset;
 }
 static Il2CppClass *stretchableObstacleClass;
 static const MethodInfo *SetSizeMethodInfo;
-static const MethodInfo *(*get_methods)(Il2CppClass *, void **) = nullptr;
-static Il2CppObject *(*runtime_invoke)(const MethodInfo *, void *, void **, Il2CppException **) = nullptr;
+
 void SetStrechableObstacleSize(void *object, float paramOne, float paramTwo, float paramThree)
 {
     if (stretchableObstacleClass == nullptr)
         stretchableObstacleClass = GetClassFromName("", "StretchableObstacle");
 
-    if(get_methods == nullptr || runtime_invoke == nullptr)
-    {
-    void *imagehandle = dlopen("/data/app/com.beatgames.beatsaber-1/lib/arm/libil2cpp.so", 1);
-    if(get_methods == nullptr)
-        *(void **)(&get_methods) = dlsym(imagehandle, "il2cpp_class_get_methods");
-    if(runtime_invoke == nullptr)
-        *(void **)(&runtime_invoke) = dlsym(imagehandle, "il2cpp_runtime_invoke");
-    dlclose(imagehandle);
-    }
-
-
     void *iter = nullptr;
     MethodInfo const *m;
     if (SetSizeMethodInfo == nullptr || SetSizeMethodInfo->parameters_count != 3)
-        while ((m = get_methods(stretchableObstacleClass, &iter)) != nullptr)
+        while ((m = il2cpp_functions::class_get_methods(stretchableObstacleClass, &iter)) != nullptr)
         {
             if (std::strncmp(m->name, "SetSize", 7) == 0)
             {
-                //          log("Stretchable Obstacle Method: %s", m->name);
+                //          log(INFO,"Stretchable Obstacle Method: %s", m->name);
                 SetSizeMethodInfo = m;
-                //       log("SetSizeMethod: %i", SetSizeMethodInfo->parameters_count);
+                //       log(INFO,"SetSizeMethod: %i", SetSizeMethodInfo->parameters_count);
                 break;
             }
         }
@@ -994,16 +981,16 @@ void SetStrechableObstacleSize(void *object, float paramOne, float paramTwo, flo
     Il2CppException *exception = nullptr;
     float *test;
     void *params[] = {&paramOne, &paramTwo, &paramThree};
- //   log("Calling runtime_invoke");
-    runtime_invoke(SetSizeMethodInfo, object, params, &exception);
-  //  log("Called runtime_invoke");
+    //   log(INFO,"Calling runtime_invoke");
+    il2cpp_functions::runtime_invoke(SetSizeMethodInfo, object, params, &exception);
+    //  log(INFO,"Called runtime_invoke");
 }
 MAKE_HOOK(obstacle_controller_init, obstacle_controller_init_offset, void, ObstacleController *self, ObstacleData *obstacleData, Vector3 startPos, Vector3 midPos, Vector3 endPos,
           float move1Duration, float move2Duration, float startTimeOffset, float singleLineWidth)
 {
-    log("Called obstacle_controller_init Hook");
-        obstacle_controller_init(self, obstacleData, startPos, midPos, endPos, move1Duration, move2Duration, startTimeOffset, singleLineWidth);
-    
+    log(INFO, "Called obstacle_controller_init Hook");
+    obstacle_controller_init(self, obstacleData, startPos, midPos, endPos, move1Duration, move2Duration, startTimeOffset, singleLineWidth);
+
     obstacle_controller_init(self, obstacleData, startPos, midPos, endPos, move1Duration, move2Duration, startTimeOffset, singleLineWidth);
     int mode = (obstacleData->obstacleType >= 4001 && obstacleData->obstacleType <= 4100000) ? 1 : 0;
     int height = 0;
@@ -1014,7 +1001,7 @@ MAKE_HOOK(obstacle_controller_init, obstacle_controller_init_offset, void, Obsta
         value -= 4001;
         height = value / 1000;
         startHeight = value % 1000;
-        //     log("startHeight %i", startHeight);
+        //     log(INFO,"startHeight %i", startHeight);
         //     Console.WriteLine(height + "<---Height       StartHeight---> " + startHeight);
     }
     else
@@ -1028,19 +1015,19 @@ MAKE_HOOK(obstacle_controller_init, obstacle_controller_init_offset, void, Obsta
 
         float width = (float)obstacleData->width - 1000;
         float precisionLineWidth = singleLineWidth / 1000;
-        //      log("Width %f   PrecisionWidth %f", width, precisionLineWidth);
+        //      log(INFO,"Width %f   PrecisionWidth %f", width, precisionLineWidth);
         num = width * precisionLineWidth; //Change y of b for start height
-                                          //     log("num %f", num);
+                                          //     log(INFO,"num %f", num);
         //    Vector3 b = new Vector3((num - singleLineWidth) * 0.5f, 4 * ((float)startHeight / 1000), 0f);
         Vector3 b{b.x = (num - singleLineWidth) * 0.5f, b.y = 4 * ((float)startHeight / 1000), b.z = 0};
-        //     log("b.y %f",b.y);
-              self->startPos = AddVectors(startPos, b);
-              self->midPos = AddVectors(midPos, b);
-              self->endPos = AddVectors(endPos, b);
+        //     log(INFO,"b.y %f",b.y);
+        self->startPos = AddVectors(startPos, b);
+        self->midPos = AddVectors(midPos, b);
+        self->endPos = AddVectors(endPos, b);
 
-   //        log("startPos %f   %f   %f", self->startPos.x, self->startPos.y, self->startPos.z);
-   //        log("midPos %f   %f   %f", self->midPos.x, self->midPos.y, self->midPos.z);
-   //        log("endPos %f   %f   %f", self->endPos.x, self->endPos.y, self->endPos.z);
+        //        log(INFO,"startPos %f   %f   %f", self->startPos.x, self->startPos.y, self->startPos.z);
+        //        log(INFO,"midPos %f   %f   %f", self->midPos.x, self->midPos.y, self->midPos.z);
+        //        log(INFO,"endPos %f   %f   %f", self->endPos.x, self->endPos.y, self->endPos.z);
     }
     else
     {
@@ -1053,23 +1040,22 @@ MAKE_HOOK(obstacle_controller_init, obstacle_controller_init_offset, void, Obsta
     {
         multiplier = (float)height / 1000;
     }
-//    log("Calling SetStrechableObstacleSize %f | %f | %f | %f", fabs(num * 0.98f), fabs(self->height * multiplier), fabs(length), self->height);
+    //    log(INFO,"Calling SetStrechableObstacleSize %f | %f | %f | %f", fabs(num * 0.98f), fabs(self->height * multiplier), fabs(length), self->height);
     SetStrechableObstacleSize(self->stretchableObstacle, fabs(num * 0.98f), fabs(self->height * multiplier), fabs(length));
- //   log("extents 1 %f   %f   %f", self->bounds.extents.x, self->bounds.extents.y, self->bounds.extents.z);
- //       log("extents 2 %f   %f   %f", self->stretchableObstacle->bounds.extents.x, self->stretchableObstacle->bounds.extents.y, self->stretchableObstacle->bounds.extents.z);
-            self->bounds.center.x = self->stretchableObstacle->bounds.center.x;
-            self->bounds.center.y = self->stretchableObstacle->bounds.center.y;
-            self->bounds.center.z = self->stretchableObstacle->bounds.center.z;
+    //   log(INFO,"extents 1 %f   %f   %f", self->bounds.extents.x, self->bounds.extents.y, self->bounds.extents.z);
+    //       log(INFO,"extents 2 %f   %f   %f", self->stretchableObstacle->bounds.extents.x, self->stretchableObstacle->bounds.extents.y, self->stretchableObstacle->bounds.extents.z);
+    self->bounds.center.x = self->stretchableObstacle->bounds.center.x;
+    self->bounds.center.y = self->stretchableObstacle->bounds.center.y;
+    self->bounds.center.z = self->stretchableObstacle->bounds.center.z;
     //  self->bounds = self->stretchableObstacle->bounds;
     //     ____stretchableObstacle.SetSize(fabs(num * 0.98f),fabs(self->height * multiplier), fabs(length));
     //  ____bounds = ____stretchableObstacle.bounds;
-    
 }
 MAKE_HOOK(get_beatmap_data_from_savedata, get_beatmap_data_from_savedata_offset, BeatmapData *, List<SaveDataNoteData *> *noteSaveData,
           List<SaveDataObstacleData *> *obstaclesSaveData, List<SaveDataEventData *> *eventsSaveData, float beatsPerMinute, float shuffle, float shufflePeriod)
 {
-    log("Called get_beatmap_data_from_savedata Hook");
-/* 
+    log(INFO, "Called get_beatmap_data_from_savedata Hook");
+    /* 
   if (stretchableObstacleClass == nullptr)
         stretchableObstacleClass = GetClassFromName("", "StretchableObstacle");
 
@@ -1079,7 +1065,7 @@ MAKE_HOOK(get_beatmap_data_from_savedata, get_beatmap_data_from_savedata_offset,
     *(void **)(&get_methods) = dlsym(imagehandle, "il2cpp_class_get_methods");
     Il2CppObject *(*runtime_invoke)(const MethodInfo *, void *, void **, Il2CppException **);
     *(void **)(&runtime_invoke) = dlsym(imagehandle, "il2cpp_runtime_invoke");
-    // log("Prepared Il2cpp functions");
+    // log(INFO,"Prepared Il2cpp functions");
 
     void *iter = nullptr;
     MethodInfo const *m;
@@ -1088,9 +1074,9 @@ MAKE_HOOK(get_beatmap_data_from_savedata, get_beatmap_data_from_savedata_offset,
         {
             if (std::strncmp(m->name, "SetSize", 7) == 0)
             {
-                          log("Stretchable Obstacle Method: %s", m->name);
+                          log(INFO,"Stretchable Obstacle Method: %s", m->name);
                 SetSizeMethodInfo = m;
-                //       log("SetSizeMethod: %i", SetSizeMethodInfo->parameters_count);
+                //       log(INFO,"SetSizeMethod: %i", SetSizeMethodInfo->parameters_count);
                 break;
             }
         }
@@ -1106,21 +1092,21 @@ MAKE_HOOK(get_beatmap_data_from_savedata, get_beatmap_data_from_savedata_offset,
         auto item = noteSaveData->items->values[i];
         if (noteSaveData->items->values[i]->lineIndex > 3)
         {
-     //       log("Putting id: %i in map.", num);
+            //       log(INFO,"Putting id: %i in map.", num);
             extendedLanesMap[num] = noteSaveData->items->values[i]->lineIndex;
             noteSaveData->items->values[i]->lineIndex = 3;
         }
 
         if (noteSaveData->items->values[i]->lineIndex < 0)
         {
-  //          log("Putting id: %i in map.", num);
+            //          log(INFO,"Putting id: %i in map.", num);
             extendedLanesMap[num] = noteSaveData->items->values[i]->lineIndex;
             noteSaveData->items->values[i]->lineIndex = 0;
         }
         /* 
         if (noteSaveData->items->values[i]->lineLayer < 0 || noteSaveData->items->values[i]->lineLayer > 2)
         {
-            log("Storing layer %i for id %i", noteSaveData->items->values[i]->lineLayer, num);
+            log(INFO,"Storing layer %i for id %i", noteSaveData->items->values[i]->lineLayer, num);
             extendedLayersMap[num] = noteSaveData->items->values[i]->lineLayer;
         }
         */
@@ -1131,14 +1117,14 @@ MAKE_HOOK(get_beatmap_data_from_savedata, get_beatmap_data_from_savedata_offset,
         num++;
         if (obstaclesSaveData->items->values[i]->lineIndex > 3)
         {
- //           log("Putting id: %i in map", num);
+            //           log(INFO,"Putting id: %i in map", num);
             extendedLanesMap[num] = obstaclesSaveData->items->values[i]->lineIndex;
             obstaclesSaveData->items->values[i]->lineIndex = 3;
         }
 
         if (obstaclesSaveData->items->values[i]->lineIndex < 0)
         {
-      //      log("Putting id: %i in map", num);
+            //      log(INFO,"Putting id: %i in map", num);
             extendedLanesMap[num] = obstaclesSaveData->items->values[i]->lineIndex;
             obstaclesSaveData->items->values[i]->lineIndex = 0;
         }
@@ -1155,14 +1141,14 @@ MAKE_HOOK(get_beatmap_data_from_savedata, get_beatmap_data_from_savedata_offset,
             {
                 auto item = result->beatmapLinesData->values[i]->beatmapObjectData->values[j];
 
-    //            log("Found id: %i in map.", id);
+                //            log(INFO,"Found id: %i in map.", id);
                 result->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex = extendedLanesMap[id];
             }
         }
     }
     if (extendedLanesMap.size() > 0)
     {
-        log("Attempting to correct extended lanes not flipping");
+        log(INFO, "Attempting to correct extended lanes not flipping");
         std::vector<NoteData *> allnotes;
         //Get all the notes
         for (int i = 0; i < result->beatmapLinesData->Length(); ++i)
@@ -1213,14 +1199,14 @@ MAKE_HOOK(get_beatmap_data_from_savedata, get_beatmap_data_from_savedata_offset,
         ProcessBasicNotesInTimeRow(list2, std::numeric_limits<float>::max());
     }
 
-    log("get_beatmap_data_from_savedata Hook finished");
+    log(INFO, "get_beatmap_data_from_savedata Hook finished");
     return result;
 }
 
 __attribute__((constructor)) void lib_main()
 {
 
-    log("Installing Mapping Extensions Hooks!");
+    log(INFO, "Installing Mapping Extensions Hooks!");
     INSTALL_HOOK(note_rotation);
     INSTALL_HOOK(note_rotation_mirror);
     INSTALL_HOOK(note_mirror);
@@ -1234,5 +1220,8 @@ __attribute__((constructor)) void lib_main()
     INSTALL_HOOK(noarrows_transformed_data);
     INSTALL_HOOK(obstacles_bombs_transformed_data);
     INSTALL_HOOK(obstacle_controller_init);
-    log("Installed  Mapping Extensions Hooks!");
+    log(INFO, "Installed  Mapping Extensions Hooks!");
+    log(INFO, "Initializing Il2Cpp Functions for Mapping Extensions");
+    il2cpp_functions::Init();
+    log(INFO, "Initialized Il2Cpp Functions for Mapping Extensions");
 }
