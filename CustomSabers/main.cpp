@@ -18,6 +18,7 @@
 #define set_active_scene_offset 0xD902B4
 #define gameplay_core_scene_setup_start_offset 0x5268D0
 #define saber_start_offset 0x538890
+#define tutorial_controller_awake_offset 0x626A4C
 #define MOD_ID "CustomSabers"
 #define VERSION "0.0.1"
 using il2cpp_utils::createcsstr;
@@ -217,7 +218,24 @@ MAKE_HOOK(gameplay_core_scene_setup_start, gameplay_core_scene_setup_start_offse
     }
     customSaberGameObject = nullptr;
 }
-
+MAKE_HOOK(tutorial_controller_awake, tutorial_controller_awake_offset, void, void *self)
+{
+    log(INFO, "Called tutorial_controller_awake hook");
+    tutorial_controller_awake(self);
+    GrabMethods();
+    if (asyncBundle == nullptr)
+    {
+        Il2CppException *exception;
+        Il2CppString *assetFilePath = createcsstr("/sdcard/Android/data/com.beatgames.beatsaber/files/sabers/testSaber.qsaber");
+        void *fromFileParams[] = {assetFilePath};
+        asyncBundle = runtime_invoke(assetBundleFromFileAsync, nullptr, fromFileParams, &exception);
+        bool sceneActivationValue = true;
+        void *setSceneActivationParams[] = {&sceneActivationValue};
+        runtime_invoke(asyncOperationSetAllowSceneActivation, asyncBundle, setSceneActivationParams, &exception);
+        log(INFO, "Loaded Async Bundle");
+    }
+    customSaberGameObject = nullptr;
+}
 void ReplaceSaber(void *, void *);
 MAKE_HOOK(saber_start, saber_start_offset, void, void *self)
 {
@@ -274,6 +292,7 @@ __attribute__((constructor)) void lib_main()
     INSTALL_HOOK(set_active_scene);
     INSTALL_HOOK(gameplay_core_scene_setup_start);
     INSTALL_HOOK(saber_start);
+    INSTALL_HOOK(tutorial_controller_awake);
     log(INFO, "Installed Custom Sabers Hooks!");
     log(INFO, "Initializing il2cpp api functions for Custom Sabers.");
     Init();
