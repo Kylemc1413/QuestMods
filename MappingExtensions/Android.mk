@@ -16,7 +16,7 @@
 #
 LOCAL_PATH := $(call my-dir)
 
-TARGET_ARCH_ABI := armeabi-v7a
+TARGET_ARCH_ABI := arm64-v8a
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := hook
