@@ -11,28 +11,30 @@
 #include <map>
 #include "../beatsaber-hook/shared/inline-hook/inlineHook.h"
 #include "../beatsaber-hook/shared/utils/utils.h"
-
+#include "../beatsaber-hook/shared/utils/logging.h"
+#include "../beatsaber-hook/shared/utils/typedefs.h"
 //#define line_y_pos_for_line_layer_offset 0x4F5AC0
-#define spawn_flying_score_offset 0x51CE00
-#define get_note_offset_offset 0x4F6EB8
-#define note_rotation_offset 0x5603B0
-#define jump_gravity_for_line_layer_offset 0x4F5AE4
+#define spawn_flying_score_offset 0xA4D46C
+#define get_note_offset_offset 0x9D261C
+#define note_rotation_offset 0xA80980
+#define jump_gravity_for_line_layer_offset 0x9D15AC
 
-#define note_rotation_mirror_offset 0x5646C4
-#define note_mirror_offset 0x564774
-#define obstacle_mirror_offset 0x9E3168
+#define note_rotation_mirror_offset 0xA84300
+#define note_mirror_offset 0xA84398
+#define obstacle_mirror_offset 0xCDAA28
 
-#define get_beatmap_data_from_savedata_offset 0x47FEBC
-#define mirror_transformed_data_offset 0x47B61C
-#define noarrows_transformed_data_offset 0x47D30C
-#define obstacles_bombs_transformed_data_offset 0x47C894
+#define get_beatmap_data_from_savedata_offset 0x9A1D0C
+#define mirror_transformed_data_offset 0x99DD8C
+#define noarrows_transformed_data_offset 0x99F678
+#define obstacles_bombs_transformed_data_offset 0x99ED58
 
-#define obstacle_controller_init_offset 0x9E252C
+#define obstacle_controller_init_offset 0xCD9F24
 
 #define MOD_ID "MappingExtenions"
 #define VERSION "0.10.1"
 
 using il2cpp_utils::GetClassFromName;
+using TYPEDEFS_H::Quaternion;
 template <class T>
 struct List : Il2CppObject
 {
@@ -50,13 +52,6 @@ struct UnityObject : Il2CppObject
 {
     int *m_cachedPtr;
 };
-typedef struct
-{
-    float x;
-    float y;
-    float z;
-    float w;
-} Quaternion;
 
 struct SaveDataNoteData : Il2CppObject
 {
@@ -156,6 +151,8 @@ struct BeatmapLineData : Il2CppObject
 struct Bounds : Il2CppObject
 {
     Vector3 center;
+    uint pad1;
+    uint pad2;
     Vector3 extents;
 };
 
@@ -174,7 +171,7 @@ struct ObstacleController : UnityObject
 {
     void *activeObstaclesManager;
     StretchableObstacle *stretchableObstacle;
-    float height;
+    void* color;
     float endDistanceOffset;
     void *visualWrappers;
     void *playerController;
@@ -851,14 +848,14 @@ MAKE_HOOK(obstacle_mirror, obstacle_mirror_offset, void, ObstacleData *self, int
         }
     }
 }
-MAKE_HOOK(spawn_flying_score, spawn_flying_score_offset, void, void *self, void *noteCutInfo, int noteLineIndex, int multiplier, Vector3 pos, Color color, void *saberAfterCutSwingRatingCounter)
+MAKE_HOOK(spawn_flying_score, spawn_flying_score_offset, void, void *self, void *noteCutInfo, int noteLineIndex, int multiplier, Vector3 pos, Color color)
 {
     //    log(INFO, "Called spawn_flying_score Hook");
     if (noteLineIndex > 3)
         noteLineIndex = 3;
     if (noteLineIndex < 0)
         noteLineIndex = 0;
-    return spawn_flying_score(self, noteCutInfo, noteLineIndex, multiplier, pos, color, saberAfterCutSwingRatingCounter);
+    return spawn_flying_score(self, noteCutInfo, noteLineIndex, multiplier, pos, color);
 }
 MAKE_HOOK(get_note_offset, get_note_offset_offset, Vector3, BeatmapObjectSpawnController *self, int noteLineIndex, int noteLineLayer)
 {
@@ -888,35 +885,27 @@ MAKE_HOOK(get_note_offset, get_note_offset_offset, Vector3, BeatmapObjectSpawnCo
 static Il2CppClass *stretchableObstacleClass;
 static const MethodInfo *SetSizeMethodInfo;
 
-void SetStrechableObstacleSize(void *object, float paramOne, float paramTwo, float paramThree)
+void SetStrechableObstacleSize(void *object, float paramOne, float paramTwo, float paramThree, void* color)
 {
     if (stretchableObstacleClass == nullptr)
         stretchableObstacleClass = GetClassFromName("", "StretchableObstacle");
 
     void *iter = nullptr;
     MethodInfo const *m;
-    if (SetSizeMethodInfo == nullptr || SetSizeMethodInfo->parameters_count != 3)
-        while ((m = il2cpp_functions::class_get_methods(stretchableObstacleClass, &iter)) != nullptr)
-        {
-            if (std::strncmp(m->name, "SetSize", 7) == 0)
-            {
-                SetSizeMethodInfo = m;
-                break;
-            }
-        }
+    m = il2cpp_functions::class_get_method_from_name(stretchableObstacleClass, "SetSizeAndColor", 4);
 
     Il2CppException *exception = nullptr;
     float *test;
-    void *params[] = {&paramOne, &paramTwo, &paramThree};
+    void *params[] = {&paramOne, &paramTwo, &paramThree, &color};
     il2cpp_functions::runtime_invoke(SetSizeMethodInfo, object, params, &exception);
 }
 MAKE_HOOK(obstacle_controller_init, obstacle_controller_init_offset, void, ObstacleController *self, ObstacleData *obstacleData, Vector3 startPos, Vector3 midPos, Vector3 endPos,
-          float move1Duration, float move2Duration, float startTimeOffset, float singleLineWidth)
+          float move1Duration, float move2Duration, float startTimeOffset, float singleLineWidth, float obsHeight)
 {
     //  log(INFO, "Called obstacle_controller_init Hook");
-    obstacle_controller_init(self, obstacleData, startPos, midPos, endPos, move1Duration, move2Duration, startTimeOffset, singleLineWidth);
+    obstacle_controller_init(self, obstacleData, startPos, midPos, endPos, move1Duration, move2Duration, startTimeOffset, singleLineWidth, obsHeight);
 
-    obstacle_controller_init(self, obstacleData, startPos, midPos, endPos, move1Duration, move2Duration, startTimeOffset, singleLineWidth);
+ //   obstacle_controller_init(self, obstacleData, startPos, midPos, endPos, move1Duration, move2Duration, startTimeOffset, singleLineWidth);
     int mode = (obstacleData->obstacleType >= 4001 && obstacleData->obstacleType <= 4100000) ? 1 : 0;
     int height = 0;
     int startHeight = 0;
@@ -955,7 +944,7 @@ MAKE_HOOK(obstacle_controller_init, obstacle_controller_init_offset, void, Obsta
     {
         multiplier = (float)height / 1000;
     }
-    SetStrechableObstacleSize(self->stretchableObstacle, fabs(num * 0.98f), fabs(self->height * multiplier), fabs(length));
+    SetStrechableObstacleSize(self->stretchableObstacle, fabs(num * 0.98f), fabs(obsHeight * multiplier), fabs(length), self->color);
     self->bounds.center.x = self->stretchableObstacle->bounds.center.x;
     self->bounds.center.y = self->stretchableObstacle->bounds.center.y;
     self->bounds.center.z = self->stretchableObstacle->bounds.center.z;
