@@ -9,9 +9,9 @@
 #include <vector>
 #include <limits>
 #include <map>
+#include "../beatsaber-hook/shared/utils/logging.h"
 #include "../beatsaber-hook/shared/inline-hook/inlineHook.h"
 #include "../beatsaber-hook/shared/utils/utils.h"
-#include "../beatsaber-hook/shared/utils/logging.h"
 #include "../beatsaber-hook/shared/utils/typedefs.h"
 //#define line_y_pos_for_line_layer_offset 0x4F5AC0
 #define spawn_flying_score_offset 0xA4D46C
@@ -29,12 +29,22 @@
 #define obstacles_bombs_transformed_data_offset 0x99ED58
 
 #define obstacle_controller_init_offset 0xCD9F24
-
+#define color_manager_set_color_scheme_offset 0xA345A8
 #define MOD_ID "MappingExtenions"
-#define VERSION "0.10.1"
+#define VERSION "0.11.0"
 
 using il2cpp_utils::GetClassFromName;
 using TYPEDEFS_H::Quaternion;
+
+static void dump_real(int before, int after, void* ptr) {
+    log(DEBUG, "Dumping Immediate Pointer: %p: %lx", ptr, *reinterpret_cast<long*>(ptr));
+    auto begin = static_cast<long*>(ptr) - before;
+    auto end = static_cast<long*>(ptr) + after;
+    for (auto cur = begin; cur != end; ++cur) {
+        log(DEBUG, "0x%lx: %lx", (long)cur - (long)ptr, *cur);
+    }
+}
+
 template <class T>
 struct List : Il2CppObject
 {
@@ -151,8 +161,6 @@ struct BeatmapLineData : Il2CppObject
 struct Bounds : Il2CppObject
 {
     Vector3 center;
-    uint pad1;
-    uint pad2;
     Vector3 extents;
 };
 
@@ -160,10 +168,13 @@ struct StretchableObstacle : UnityObject
 {
     float edgeSize;
     float coreOffset;
+    float addColorMultiplier;
     void *obstacleCore;
     void *stretchableCore;
     void *obstacleFrame;
     void *obstacleFakeGlow;
+    void* addColorSetters;
+    void* tintcolorSetters;
     Bounds bounds;
 };
 
@@ -884,27 +895,42 @@ MAKE_HOOK(get_note_offset, get_note_offset_offset, Vector3, BeatmapObjectSpawnCo
 }
 static Il2CppClass *stretchableObstacleClass;
 static const MethodInfo *SetSizeMethodInfo;
+static Il2CppClass *ColorSchemeClass;
+static const MethodInfo *get_obstaclesColor;
+static Color obstacleColor;
+MAKE_HOOK(color_manager_set_color_scheme, color_manager_set_color_scheme_offset, void, void* self, void* colorScheme)
+{
+    log(INFO, "Callec color_manager_set_color_scheme hook");
+    color_manager_set_color_scheme(self, colorScheme);
+        if (ColorSchemeClass == nullptr)
+        ColorSchemeClass = GetClassFromName("", "ColorScheme");
+        if(get_obstaclesColor == nullptr)
+            get_obstaclesColor = il2cpp_functions::class_get_method_from_name(ColorSchemeClass, "get_obstaclesColor", 0);
 
-void SetStrechableObstacleSize(void *object, float paramOne, float paramTwo, float paramThree, void* color)
+    Il2CppException *exception = nullptr;
+    obstacleColor = *(reinterpret_cast<Color *>(il2cpp_functions::object_unbox(il2cpp_functions::runtime_invoke(get_obstaclesColor, colorScheme, nullptr, &exception))));
+
+}
+void SetStrechableObstacleSize(void *object, float paramOne, float paramTwo, float paramThree)
 {
     if (stretchableObstacleClass == nullptr)
         stretchableObstacleClass = GetClassFromName("", "StretchableObstacle");
 
-    void *iter = nullptr;
-    MethodInfo const *m;
-    m = il2cpp_functions::class_get_method_from_name(stretchableObstacleClass, "SetSizeAndColor", 4);
+        if(SetSizeMethodInfo == nullptr)
+    SetSizeMethodInfo = il2cpp_functions::class_get_method_from_name(stretchableObstacleClass, "SetSizeAndColor", 4);
 
     Il2CppException *exception = nullptr;
     float *test;
-    void *params[] = {&paramOne, &paramTwo, &paramThree, &color};
+    void *params[] = {&paramOne, &paramTwo, &paramThree, &obstacleColor};
     il2cpp_functions::runtime_invoke(SetSizeMethodInfo, object, params, &exception);
 }
 MAKE_HOOK(obstacle_controller_init, obstacle_controller_init_offset, void, ObstacleController *self, ObstacleData *obstacleData, Vector3 startPos, Vector3 midPos, Vector3 endPos,
           float move1Duration, float move2Duration, float startTimeOffset, float singleLineWidth, float obsHeight)
 {
-    //  log(INFO, "Called obstacle_controller_init Hook");
+      log(INFO, "Called obstacle_controller_init Hook");
     obstacle_controller_init(self, obstacleData, startPos, midPos, endPos, move1Duration, move2Duration, startTimeOffset, singleLineWidth, obsHeight);
-
+    if((obstacleData->obstacleType == 0 || obstacleData->obstacleType == 1) && !(obstacleData->width >= 1000))
+        return;
  //   obstacle_controller_init(self, obstacleData, startPos, midPos, endPos, move1Duration, move2Duration, startTimeOffset, singleLineWidth);
     int mode = (obstacleData->obstacleType >= 4001 && obstacleData->obstacleType <= 4100000) ? 1 : 0;
     int height = 0;
@@ -944,10 +970,9 @@ MAKE_HOOK(obstacle_controller_init, obstacle_controller_init_offset, void, Obsta
     {
         multiplier = (float)height / 1000;
     }
-    SetStrechableObstacleSize(self->stretchableObstacle, fabs(num * 0.98f), fabs(obsHeight * multiplier), fabs(length), self->color);
-    self->bounds.center.x = self->stretchableObstacle->bounds.center.x;
-    self->bounds.center.y = self->stretchableObstacle->bounds.center.y;
-    self->bounds.center.z = self->stretchableObstacle->bounds.center.z;
+    SetStrechableObstacleSize(self->stretchableObstacle, fabs(num * 0.98f), fabs(obsHeight * multiplier), fabs(length));
+   dump_real(0, 50, self);
+   // self->bounds = self->stretchableObstacle->bounds;
 }
 MAKE_HOOK(get_beatmap_data_from_savedata, get_beatmap_data_from_savedata_offset, BeatmapData *, List<SaveDataNoteData *> *noteSaveData,
           List<SaveDataObstacleData *> *obstaclesSaveData, List<SaveDataEventData *> *eventsSaveData, float beatsPerMinute, float shuffle, float shufflePeriod)
@@ -1082,6 +1107,7 @@ __attribute__((constructor)) void lib_main()
     INSTALL_HOOK(noarrows_transformed_data);
     INSTALL_HOOK(obstacles_bombs_transformed_data);
     INSTALL_HOOK(obstacle_controller_init);
+    INSTALL_HOOK(color_manager_set_color_scheme);
     log(INFO, "Installed  Mapping Extensions Hooks!");
     log(INFO, "Initializing Il2Cpp Functions for Mapping Extensions");
     il2cpp_functions::Init();
