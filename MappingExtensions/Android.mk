@@ -31,7 +31,7 @@ LOCAL_MODULE := hook
 #LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../include
 include $(CLEAR_VARS)
 LOCAL_LDLIBS := -llog
-LOCAL_CFLAGS    := -DMOD_ID='"MappingExtensions"' -DVERSION='"0.12.0"'
+LOCAL_CFLAGS    := -DMOD_ID='"MappingExtensions"' -DVERSION='"0.13.0"'
 LOCAL_MODULE    := mappingextensions
 LOCAL_CPPFLAGS := -std=c++2a 
 #LOCAL_SHARED_LIBRARIES := testil2cpp

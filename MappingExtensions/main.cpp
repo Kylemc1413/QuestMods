@@ -35,7 +35,7 @@
 #define standard_level_detail_view_refresh_content_offset 0x9E98B4
 #define obstacle_execution_ratings_offset 0x9CBFD4
 #define MOD_ID "MappingExtenions"
-#define VERSION "0.12.0"
+#define VERSION "0.13.0"
 
 using il2cpp_utils::GetClassFromName;
 using TYPEDEFS_H::Quaternion;
