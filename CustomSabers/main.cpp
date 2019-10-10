@@ -9,10 +9,14 @@
 #include <vector>
 #include <limits>
 #include <map>
+#include "../beatsaber-hook/shared/utils/logging.h"
 #include "../beatsaber-hook/shared/inline-hook/inlineHook.h"
 #include "../beatsaber-hook/shared/utils/utils.h"
+#include "../beatsaber-hook/shared/utils/typedefs.h"
 //#undef log
-//#define log(INFO,...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[CustomSabers v0.0.1] " __VA_ARGS__)
+//#define log2(INFO,...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[CustomSabers v0.0.1] " __VA_ARGS__)
+#undef log2
+#define log2(...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[MappingExtensions] " __VA_ARGS__)
 
 //Hook offsets
 #define set_active_scene_offset 0xD902B4
@@ -42,14 +46,6 @@ struct UnityObject : Il2CppObject
 {
     int *m_cachedPtr;
 };
-typedef struct
-{
-    float x;
-    float y;
-    float z;
-    float w;
-} Quaternion;
-
 struct SaveDataNoteData : Il2CppObject
 {
     float time;
@@ -170,7 +166,7 @@ static void *asyncBundle;
 void GrabMethods();
 MAKE_HOOK(set_active_scene, set_active_scene_offset, bool, int scene)
 {
-    log(INFO, "Called set_active_scene hook");
+    log2("Called set_active_scene hook");
     bool result = set_active_scene(scene);
 
     if (sceneClass == nullptr)
@@ -190,9 +186,9 @@ MAKE_HOOK(set_active_scene, set_active_scene_offset, bool, int scene)
     //Code to run if menuCore
     if (std::strncmp(sceneName, "MenuCore", 8) == 0)
     {
-        log(INFO, "MenuCore Scene");
+        log2("MenuCore Scene");
     }
-    log(INFO, "End set_active_scene hook");
+    log2("End set_active_scene hook");
     return result;
 }
 
@@ -201,7 +197,7 @@ void *customSaberGameObject;
 
 MAKE_HOOK(gameplay_core_scene_setup_start, gameplay_core_scene_setup_start_offset, void, void *self)
 {
-    log(INFO, "Called gameplay_core_scene_setup_start hook");
+    log2("Called gameplay_core_scene_setup_start hook");
     gameplay_core_scene_setup_start(self);
 
     GrabMethods();
@@ -214,13 +210,13 @@ MAKE_HOOK(gameplay_core_scene_setup_start, gameplay_core_scene_setup_start_offse
         bool sceneActivationValue = true;
         void *setSceneActivationParams[] = {&sceneActivationValue};
         runtime_invoke(asyncOperationSetAllowSceneActivation, asyncBundle, setSceneActivationParams, &exception);
-        log(INFO, "Loaded Async Bundle");
+        log2("Loaded Async Bundle");
     }
     customSaberGameObject = nullptr;
 }
 MAKE_HOOK(tutorial_controller_awake, tutorial_controller_awake_offset, void, void *self)
 {
-    log(INFO, "Called tutorial_controller_awake hook");
+    log2("Called tutorial_controller_awake hook");
     tutorial_controller_awake(self);
     GrabMethods();
     if (asyncBundle == nullptr)
@@ -232,7 +228,7 @@ MAKE_HOOK(tutorial_controller_awake, tutorial_controller_awake_offset, void, voi
         bool sceneActivationValue = true;
         void *setSceneActivationParams[] = {&sceneActivationValue};
         runtime_invoke(asyncOperationSetAllowSceneActivation, asyncBundle, setSceneActivationParams, &exception);
-        log(INFO, "Loaded Async Bundle");
+        log2("Loaded Async Bundle");
     }
     customSaberGameObject = nullptr;
 }
@@ -240,13 +236,13 @@ void ReplaceSaber(void *, void *);
 MAKE_HOOK(saber_start, saber_start_offset, void, void *self)
 {
     saber_start(self);
-    log(INFO, "Called saber_start hook");
+    log2("Called saber_start hook");
     //Load Custom Saber Objects if not loaded
     Il2CppException *exception = nullptr;
     if (customSaberAssetBundle == nullptr)
     {
         customSaberAssetBundle = runtime_invoke(assetBundleFromAsync, asyncBundle, nullptr, &exception);
-        log(INFO, "Grabbed Asset bundle");
+        log2("Grabbed Asset bundle");
         asyncBundle = nullptr;
     }
     if (customSaberGameObject == nullptr && customSaberAssetBundle != nullptr)
@@ -259,9 +255,9 @@ MAKE_HOOK(saber_start, saber_start_offset, void, void *self)
             const MethodInfo *exceptionToString = class_get_method_from_name(exception->klass, "ToString", 0);
             void *exceptionString = runtime_invoke(exceptionToString, exception, nullptr, &exception);
             Il2CppString *message = reinterpret_cast<Il2CppString *>(exceptionString);
-            log(INFO, "Exception: %s", to_utf8(csstrtostr(message)).c_str());
+            log2("Exception: %s", to_utf8(csstrtostr(message)).c_str());
         }
-        log(INFO, "Grabbed Asset Async Request");
+        log2("Grabbed Asset Async Request");
 
         void *customSaberObject = runtime_invoke(getAsset, assetAsync, nullptr, &exception);
         if (exception != nullptr)
@@ -269,34 +265,34 @@ MAKE_HOOK(saber_start, saber_start_offset, void, void *self)
             const MethodInfo *exceptionToString = class_get_method_from_name(exception->klass, "ToString", 0);
             void *exceptionString = runtime_invoke(exceptionToString, exception, nullptr, &exception);
             Il2CppString *message = reinterpret_cast<Il2CppString *>(exceptionString);
-            log(INFO, "Exception: %s", to_utf8(csstrtostr(message)).c_str());
+            log2("Exception: %s", to_utf8(csstrtostr(message)).c_str());
         }
-        log(INFO, "Grabbed Asset Object");
+        log2("Grabbed Asset Object");
 
         //Attempt to Instaniate GameObject
         void *instantiateParams[] = {customSaberObject};
         customSaberGameObject = runtime_invoke(objectInstantiate, nullptr, instantiateParams, &exception);
-        log(INFO, "Instantiated Asset Object");
+        log2("Instantiated Asset Object");
     }
 
     if (customSaberGameObject != nullptr)
     {
-        log(INFO, "Replacing Saber with Custom Saber");
+        log2("Replacing Saber with Custom Saber");
         ReplaceSaber(self, customSaberGameObject);
     }
 }
 __attribute__((constructor)) void lib_main()
 {
 
-    log(INFO, "Installing Custom Sabers Hooks!");
+    log2("Installing Custom Sabers Hooks!");
     INSTALL_HOOK(set_active_scene);
     INSTALL_HOOK(gameplay_core_scene_setup_start);
     INSTALL_HOOK(saber_start);
     INSTALL_HOOK(tutorial_controller_awake);
-    log(INFO, "Installed Custom Sabers Hooks!");
-    log(INFO, "Initializing il2cpp api functions for Custom Sabers.");
+    log2("Installed Custom Sabers Hooks!");
+    log2("Initializing il2cpp api functions for Custom Sabers.");
     Init();
-    log(INFO, "Initialized il2cpp api functions for Custom Sabers.");
+    log2("Initialized il2cpp api functions for Custom Sabers.");
 }
 
 void GrabMethods()
@@ -431,13 +427,13 @@ void ReplaceSaber(void *saber, void *customSaberObject)
         void *disableParam[] = {&getInactive};
         runtime_invoke(gameObjectSetActive, filterObject, disableParam, &exception);
     }
-    log(INFO, "Disabled Original Saber Meshes");
+    log2("Disabled Original Saber Meshes");
 
     runtime_invoke(transformParentSet, childTransform, &parentSaberTransform, &exception);
     runtime_invoke(transformPosSet, childTransform, &parentPos, &exception);
     runtime_invoke(transformEulerSet, childTransform, &parentRot, &exception);
-    log(INFO, "Placed Custom Saber");
-    log(INFO, "Attempting to set colors of Custom Saber to colorManager Colors");
+    log2("Placed Custom Saber");
+    log2("Attempting to set colors of Custom Saber to colorManager Colors");
     void *colorManager = GetFirstObjectOfType(colorManagerClass);
     if (colorManager != nullptr)
     {
@@ -487,15 +483,15 @@ void ReplaceSaber(void *saber, void *customSaberObject)
     }
     else
     {
-        log(INFO, "null colorManager");
+        log2("null colorManager");
     }
 
-    log(INFO, "Finished With Saber");
+    log2("Finished With Saber");
 }
 
 void SpawnControllerNoteWasCut(void *BeatmapObjectSpawnController, void *NoteController, void *NoteCutInfo)
 {
-    log(INFO, "Note Was Cut Callback");
+    log2("Note Was Cut Callback");
 }
 
 void *GetFirstObjectOfType(Il2CppClass *klass)

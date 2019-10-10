@@ -16,7 +16,7 @@
 #
 LOCAL_PATH := $(call my-dir)
 
-TARGET_ARCH_ABI := armeabi-v7a
+TARGET_ARCH_ABI := arm64-v8a
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := hook
@@ -32,9 +32,10 @@ LOCAL_MODULE := hook
 include $(CLEAR_VARS)
 LOCAL_LDLIBS := -llog
 LOCAL_CFLAGS    := -DMOD_ID='"CustomSabers"' -DVERSION='"0.0.1"'
-LOCAL_CPPFLAGS := -std=c++2a 
 LOCAL_MODULE    := customsabers
+LOCAL_CPPFLAGS := -std=c++2a 
+
 #LOCAL_SHARED_LIBRARIES := testil2cpp
-LOCAL_SRC_FILES := main.cpp ../beatsaber-hook/shared/utils/utils.cpp ../beatsaber-hook/shared/inline-hook/inlineHook.c ../beatsaber-hook/shared/inline-hook/relocate.c
+LOCAL_SRC_FILES := ../beatsaber-hook/shared/inline-hook/And64InlineHook.cpp ../beatsaber-hook/shared/utils/il2cpp-utils.cpp ../beatsaber-hook/shared/utils/utils.cpp main.cpp ../beatsaber-hook/shared/inline-hook/inlineHook.c ../beatsaber-hook/shared/inline-hook/relocate.c
 #LOCAL_STATIC_LIBRARIES := libhook
 include $(BUILD_SHARED_LIBRARY)
