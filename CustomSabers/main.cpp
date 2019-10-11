@@ -279,17 +279,6 @@ MAKE_HOOK(saber_start, saber_start_offset, void, void *self)
     if (customSaberGameObject != nullptr)
     {
         log2("Replacing Saber with Custom Saber");
-		if (self == nullptr) {
-			log2("This is problem");
-		}
-
-		if (customSaberGameObject == nullptr) {
-			log2("This is problem!");
-		}
-
-		log2("Pointer to self == %p", self);
-		log2("Pointer to customSaberGameObject == %p", customSaberGameObject);
-
         ReplaceSaber(self, customSaberGameObject);
     }
 }
