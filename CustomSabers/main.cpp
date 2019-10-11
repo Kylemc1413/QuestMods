@@ -16,13 +16,13 @@
 //#undef log
 //#define log2(INFO,...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[CustomSabers v0.0.1] " __VA_ARGS__)
 #undef log2
-#define log2(...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[MappingExtensions] " __VA_ARGS__)
+#define log2(...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[CustomSaber v0.0.1] " __VA_ARGS__)
 
 //Hook offsets
-#define set_active_scene_offset 0xD902B4
-#define gameplay_core_scene_setup_start_offset 0x5268D0
-#define saber_start_offset 0x538890
-#define tutorial_controller_awake_offset 0x626A4C
+#define set_active_scene_offset 0x10DD3B8
+#define gameplay_core_scene_setup_start_offset 0xA540D8
+#define saber_start_offset 0xA003F4
+#define tutorial_controller_awake_offset 0xB2BE44
 #define MOD_ID "CustomSabers"
 #define VERSION "0.0.1"
 using il2cpp_utils::createcsstr;
@@ -144,8 +144,8 @@ static const MethodInfo *transformPosGet;
 static const MethodInfo *transformLocalPosGet;
 static const MethodInfo *transformPosSet;
 static const MethodInfo *transformLocalPosSet;
-static const MethodInfo *transformEulerSet;
-static const MethodInfo *transformEulerGet;
+static const MethodInfo *transformRotationSet;
+static const MethodInfo *transformRotationGet;
 static const MethodInfo *transformLocalEulerSet;
 static const MethodInfo *transformLocalEulerGet;
 static const MethodInfo *transformParentGet;
@@ -273,11 +273,23 @@ MAKE_HOOK(saber_start, saber_start_offset, void, void *self)
         void *instantiateParams[] = {customSaberObject};
         customSaberGameObject = runtime_invoke(objectInstantiate, nullptr, instantiateParams, &exception);
         log2("Instantiated Asset Object");
+		log2("Pointer?%p", customSaberGameObject);
     }
 
     if (customSaberGameObject != nullptr)
     {
         log2("Replacing Saber with Custom Saber");
+		if (self == nullptr) {
+			log2("This is problem");
+		}
+
+		if (customSaberGameObject == nullptr) {
+			log2("This is problem!");
+		}
+
+		log2("Pointer to self == %p", self);
+		log2("Pointer to customSaberGameObject == %p", customSaberGameObject);
+
         ReplaceSaber(self, customSaberGameObject);
     }
 }
@@ -359,10 +371,10 @@ void GrabMethods()
         transformLocalPosGet = class_get_method_from_name(transformClass, "get_localPosition", 0);
     if (transformLocalPosSet == nullptr)
         transformLocalPosSet = class_get_method_from_name(transformClass, "set_localPosition", 1);
-    if (transformEulerGet == nullptr)
-        transformEulerGet = class_get_method_from_name(transformClass, "get_eulerAngles", 0);
-    if (transformEulerSet == nullptr)
-        transformEulerSet = class_get_method_from_name(transformClass, "set_eulerAngles", 1);
+    if (transformRotationGet == nullptr)
+        transformRotationGet = class_get_method_from_name(transformClass, "get_rotation", 0);
+    if (transformRotationSet == nullptr)
+        transformRotationSet = class_get_method_from_name(transformClass, "set_rotation", 1);
     if (transformLocalEulerGet == nullptr)
         transformLocalEulerGet = class_get_method_from_name(transformClass, "get_localEulerAngles", 0);
     if (transformLocalEulerSet == nullptr)
@@ -416,8 +428,7 @@ void ReplaceSaber(void *saber, void *customSaberObject)
     void *childTransform = runtime_invoke(findTransform, customSaberGameObjectTransform, saberChildParams, &exception);
     void *parentSaberTransform = runtime_invoke(getGameObjectTransform, saberGameObject, nullptr, &exception);
     void *parentPos = object_unbox(runtime_invoke(transformPosGet, parentSaberTransform, nullptr, &exception));
-    void *parentRot = object_unbox(runtime_invoke(transformEulerGet, parentSaberTransform, nullptr, &exception));
-
+    void *parentRot = object_unbox(runtime_invoke(transformRotationGet, parentSaberTransform, nullptr, &exception));
     bool getInactive = false;
     void *getMeshFiltersParams[] = {type_get_object(class_get_type(meshFilterClass)), &getInactive};
     Array<void *> *meshfilters = reinterpret_cast<Array<void *> *>(runtime_invoke(componentGetComponentsInChildren, parentSaberTransform, getMeshFiltersParams, &exception));
@@ -431,7 +442,7 @@ void ReplaceSaber(void *saber, void *customSaberObject)
 
     runtime_invoke(transformParentSet, childTransform, &parentSaberTransform, &exception);
     runtime_invoke(transformPosSet, childTransform, &parentPos, &exception);
-    runtime_invoke(transformEulerSet, childTransform, &parentRot, &exception);
+    runtime_invoke(transformRotationSet, childTransform, &parentRot, &exception);
     log2("Placed Custom Saber");
     log2("Attempting to set colors of Custom Saber to colorManager Colors");
     void *colorManager = GetFirstObjectOfType(colorManagerClass);
