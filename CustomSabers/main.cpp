@@ -19,10 +19,10 @@
 #define log2(...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[CustomSaber v0.0.1] " __VA_ARGS__)
 
 //Hook offsets
-#define set_active_scene_offset 0x10E3A3C
-#define gameplay_core_scene_setup_start_offset 0xA5875C
-#define saber_start_offset 0xA05A78
-#define tutorial_controller_awake_offset 0xB2F4C8
+#define set_active_scene_offset 0x103B19C
+#define gameplay_core_scene_setup_start_offset 0x17E22E0
+#define saber_start_offset 0x17AD120
+#define tutorial_controller_awake_offset 0xA87C28
 #define MOD_ID "CustomSabers"
 #define VERSION "0.0.1"
 using il2cpp_utils::createcsstr;

@@ -14,28 +14,28 @@
 #include "../beatsaber-hook/shared/utils/utils.h"
 #include "../beatsaber-hook/shared/utils/typedefs.h"
 //#define line_y_pos_for_line_layer_offset 0x4F5AC0
-#define spawn_flying_score_offset 0xA4E734
-#define get_note_offset_offset 0x9D4724
-#define note_rotation_offset 0xA8295C
-#define jump_gravity_for_line_layer_offset 0x9D36B4
+#define spawn_flying_score_offset 0x17D82B8
+#define get_note_offset_offset 0x1795E40
+#define note_rotation_offset 0x9D9640
+#define jump_gravity_for_line_layer_offset 0x1794DD0
 
-#define note_rotation_mirror_offset 0xA863C0
-#define note_mirror_offset 0xA86458
-#define obstacle_mirror_offset 0xCE0B90
+#define note_rotation_mirror_offset 0x9DD0A4
+#define note_mirror_offset 0x9DD13C
+#define obstacle_mirror_offset 0xC362F0
 
-#define get_beatmap_data_from_savedata_offset 0x9A3E70
-#define mirror_transformed_data_offset 0x99FEF0
-#define noarrows_transformed_data_offset 0x9A17DC
-#define obstacles_bombs_transformed_data_offset 0x9A0EBC
+#define get_beatmap_data_from_savedata_offset 0x1784F70
+#define mirror_transformed_data_offset 0x1780FF0
+#define noarrows_transformed_data_offset 0x17828DC
+#define obstacles_bombs_transformed_data_offset 0x1781FBC
 
-#define obstacle_controller_init_offset 0xCE008C
-#define color_manager_set_color_scheme_offset 0xA35870
+#define obstacle_controller_init_offset 0xC357EC
+#define color_manager_set_color_scheme_offset 0x17BF3E4
 
-#define spawn_controller_init_offset 0x9D2D94
-#define standard_level_detail_view_refresh_content_offset 0x9EEF38
-#define obstacle_execution_ratings_offset 0x9D1658
+#define spawn_controller_init_offset 0x17944B0
+#define standard_level_detail_view_refresh_content_offset 0x99A36C
+#define obstacle_execution_ratings_offset 0x1792D74
 #define MOD_ID "MappingExtenions"
-#define VERSION "0.14.0"
+#define VERSION "0.14.1"
 
 using il2cpp_utils::GetClassFromName;
 using TYPEDEFS_H::Quaternion;
