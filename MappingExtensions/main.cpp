@@ -1066,7 +1066,7 @@ MAKE_HOOK(obstacle_controller_init, obstacle_controller_init_offset, void, Il2Cp
   //  Vector3 center = *(reinterpret_cast<Vector3*>(il2cpp_functions::object_unbox(il2cpp_functions::field_get_value_object(il2cpp_functions::class_get_field_from_name(GetClassFromName("UnityEngine", "Bounds"), "m_Center"), stretchableObstacleBounds))));
   //      Vector3 extents = *(reinterpret_cast<Vector3*>(il2cpp_functions::object_unbox(il2cpp_functions::field_get_value_object(il2cpp_functions::class_get_field_from_name(GetClassFromName("UnityEngine", "Bounds"), "m_Extents"), stretchableObstacleBounds))));
   //  log_base( "New Bounds %f, %f, %f |  %f, %f, %f ", center.x, center.y, center.z,extents.x, extents.y, extents.z );
-    il2cpp_functions::field_set_value_object(self, controllerBoundsInfo, stretchableObstacleBounds);
+    il2cpp_functions::field_set_value(self, controllerBoundsInfo, stretchableObstacleBounds);
 }
 struct ExecutionRatingRecorder
 {
