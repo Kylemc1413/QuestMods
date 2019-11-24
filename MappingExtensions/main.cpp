@@ -35,7 +35,7 @@
 #define standard_level_detail_view_refresh_content_offset 0x99A36C
 #define obstacle_execution_ratings_offset 0x1792D74
 #define MOD_ID "MappingExtenions"
-#define VERSION "0.14.1"
+#define VERSION "0.14.2"
 
 using il2cpp_utils::GetClassFromName;
 using TYPEDEFS_H::Quaternion;
@@ -183,7 +183,7 @@ struct StretchableObstacle : UnityObject
     void *obstacleFakeGlow;
     void *addColorSetters;
     void *tintcolorSetters;
-    Bounds bounds;
+    void *bounds;
 };
 
 struct ObstacleController : UnityObject
@@ -217,7 +217,7 @@ struct ObstacleController : UnityObject
     bool initialized;
     int16_t pad3;
     bool pad4;
-    Bounds bounds;
+    void *bounds;
     bool dissolving;
     int16_t pad5;
     bool pad6;
@@ -994,11 +994,18 @@ void SetStrechableObstacleSize(void *object, float paramOne, float paramTwo, flo
     void *params[] = {&paramOne, &paramTwo, &paramThree, &obstacleColor};
     il2cpp_functions::runtime_invoke(SetSizeMethodInfo, object, params, &exception);
 }
-MAKE_HOOK(obstacle_controller_init, obstacle_controller_init_offset, void, ObstacleController *self, ObstacleData *obstacleData, Vector3 startPos, Vector3 midPos, Vector3 endPos,
+
+MAKE_HOOK(obstacle_controller_init, obstacle_controller_init_offset, void, Il2CppObject *self, ObstacleData *obstacleData, Vector3 startPos, Vector3 midPos, Vector3 endPos,
           float move1Duration, float move2Duration, float startTimeOffset, float singleLineWidth, float obsHeight)
 {
     log_base("Called obstacle_controller_init Hook");
-    self->obstacleData = obstacleData;
+    static auto startPosInfo = il2cpp_functions::class_get_field_from_name(GetClassFromName("", "ObstacleController"), "_startPos");
+    static auto midPosInfo = il2cpp_functions::class_get_field_from_name(GetClassFromName("", "ObstacleController"), "_midPos");
+    static auto endPosInfo = il2cpp_functions::class_get_field_from_name(GetClassFromName("", "ObstacleController"), "_endPos");
+
+    static auto obstacleDataInfo = il2cpp_functions::class_get_field_from_name(GetClassFromName("", "ObstacleController"), "_obstacleData");
+    il2cpp_functions::field_set_value(self, obstacleDataInfo, obstacleData);
+
     obstacle_controller_init(self, obstacleData, startPos, midPos, endPos, move1Duration, move2Duration, startTimeOffset, singleLineWidth, obsHeight);
     if ((obstacleData->obstacleType == 0 || obstacleData->obstacleType == 1) && !(obstacleData->width >= 1000))
         return;
@@ -1027,24 +1034,39 @@ MAKE_HOOK(obstacle_controller_init, obstacle_controller_init_offset, void, Obsta
         float precisionLineWidth = singleLineWidth / 1000;
         num = width * precisionLineWidth; //Change y of b for start height
         Vector3 b{b.x = (num - singleLineWidth) * 0.5f, b.y = 4 * ((float)startHeight / 1000), b.z = 0};
-        self->startPos = AddVectors(startPos, b);
-        self->midPos = AddVectors(midPos, b);
-        self->endPos = AddVectors(endPos, b);
+
+        Vector3 newStartPos = AddVectors(startPos, b);
+        Vector3 newMidPos = AddVectors(midPos, b);
+        Vector3 newEndPos = AddVectors(endPos, b);
+        il2cpp_functions::field_set_value(self, startPosInfo, &newStartPos);
+        il2cpp_functions::field_set_value(self, midPosInfo, &newMidPos);
+        il2cpp_functions::field_set_value(self, endPosInfo, &newEndPos);
+        //     self->startPos = AddVectors(startPos, b);
+        //     self->midPos = AddVectors(midPos, b);
+        //     self->endPos = AddVectors(endPos, b);
     }
     else
     {
         num = (float)obstacleData->width * singleLineWidth;
     }
-    float num2 = VectorMagnitude(SubtractVectors(self->endPos, self->midPos)) / move2Duration;
+    float num2 = VectorMagnitude( SubtractVectors(*reinterpret_cast<Vector3*>(il2cpp_functions::object_unbox(il2cpp_functions::field_get_value_object(endPosInfo, self))), *reinterpret_cast<Vector3*>(il2cpp_functions::object_unbox(il2cpp_functions::field_get_value_object(midPosInfo, self))))) / move2Duration;
     float length = num2 * obstacleData->duration;
     float multiplier = 1;
     if ((int)obstacleData->obstacleType >= 1000)
     {
         multiplier = (float)height / 1000;
     }
-    SetStrechableObstacleSize(self->stretchableObstacle, fabs(num * 0.98f), fabs(obsHeight * multiplier), fabs(length));
+    static auto controllerBoundsInfo = il2cpp_functions::class_get_field_from_name(GetClassFromName("", "ObstacleController"), "_bounds");
+    static auto stretchableObstacleBoundsInfo = il2cpp_functions::class_get_field_from_name(GetClassFromName("", "StretchableObstacle"), "_bounds");
+    static auto stretchableObstacleInfo = il2cpp_functions::class_get_field_from_name(GetClassFromName("", "ObstacleController"), "_stretchableObstacle");
+    auto stretchableObstacle = il2cpp_functions::field_get_value_object(stretchableObstacleInfo, self);
+    SetStrechableObstacleSize(stretchableObstacle, (num * 0.98f), (obsHeight * multiplier), (length));
     //  dump_real(0, 50, self->stretchableObstacle);
-    self->bounds = self->stretchableObstacle->bounds;
+    auto stretchableObstacleBounds = il2cpp_functions::field_get_value_object(stretchableObstacleBoundsInfo, stretchableObstacle);
+  //  Vector3 center = *(reinterpret_cast<Vector3*>(il2cpp_functions::object_unbox(il2cpp_functions::field_get_value_object(il2cpp_functions::class_get_field_from_name(GetClassFromName("UnityEngine", "Bounds"), "m_Center"), stretchableObstacleBounds))));
+  //      Vector3 extents = *(reinterpret_cast<Vector3*>(il2cpp_functions::object_unbox(il2cpp_functions::field_get_value_object(il2cpp_functions::class_get_field_from_name(GetClassFromName("UnityEngine", "Bounds"), "m_Extents"), stretchableObstacleBounds))));
+  //  log_base( "New Bounds %f, %f, %f |  %f, %f, %f ", center.x, center.y, center.z,extents.x, extents.y, extents.z );
+    il2cpp_functions::field_set_value_object(self, controllerBoundsInfo, stretchableObstacleBounds);
 }
 struct ExecutionRatingRecorder
 {
@@ -1060,13 +1082,12 @@ struct ExecutionRatingRecorder
 };
 MAKE_HOOK(obstacle_execution_ratings, obstacle_execution_ratings_offset, void, ExecutionRatingRecorder *self, BeatmapObjectSpawnController *spawnController, ObstacleController *obstacleController)
 {
-    if(skipWallRatings)
-    return;
+    if (skipWallRatings)
+        return;
     else
     {
         return obstacle_execution_ratings(self, spawnController, obstacleController);
     }
-    
 }
 MAKE_HOOK(get_beatmap_data_from_savedata, get_beatmap_data_from_savedata_offset, BeatmapData *, List<SaveDataNoteData *> *noteSaveData,
           List<SaveDataObstacleData *> *obstaclesSaveData, List<SaveDataEventData *> *eventsSaveData, float beatsPerMinute, float shuffle, float shufflePeriod)

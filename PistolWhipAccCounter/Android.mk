@@ -31,8 +31,8 @@ LOCAL_MODULE := hook
 #LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../include
 include $(CLEAR_VARS)
 LOCAL_LDLIBS := -llog
-LOCAL_CFLAGS    := -DMOD_ID='"MappingExtensions"' -DVERSION='"0.14.2"'
-LOCAL_MODULE    := mappingextensions
+LOCAL_CFLAGS    := -DMOD_ID='"AccCounter"' -DVERSION='"0.0.1"'
+LOCAL_MODULE    := AccCounter
 LOCAL_CPPFLAGS := -std=c++2a 
 #LOCAL_SHARED_LIBRARIES := testil2cpp
 LOCAL_SRC_FILES := ../beatsaber-hook/shared/inline-hook/And64InlineHook.cpp ../beatsaber-hook/shared/utils/il2cpp-utils.cpp ../beatsaber-hook/shared/utils/utils.cpp main.cpp ../beatsaber-hook/shared/inline-hook/inlineHook.c ../beatsaber-hook/shared/inline-hook/relocate.c

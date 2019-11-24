@@ -1,3 +1,6 @@
 [submodule "beatsaber-hook"]
 	path = beatsaber-hook
 	url = https://github.com/sc2ad/beatsaber-hook/
+[submodule "pistol-whip-hook"]
+	path = pistol-whip-hook
+	url = https://github.com/sc2ad/pistol-whip-hook
