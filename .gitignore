@@ -3,4 +3,4 @@
 *.jar
 *.so
 *.zip
-
+**/libil2cpp/**
