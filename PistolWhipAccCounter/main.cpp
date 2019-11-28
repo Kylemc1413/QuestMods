@@ -17,7 +17,6 @@
 #include "../pistol-whip-hook/shared/utils/il2cpp-functions.hpp"
 #include "../pistol-whip-hook/shared/utils/il2cpp-utils.hpp"
 #include "../pistol-whip-hook/shared/utils/typedefs.h"
-//#define line_y_pos_for_line_layer_offset 0x4F5AC0
 
 #define GunAmmoDisplayUpdateOffset 0x15E2798
 #define PlayerActionManagerGameStartOffset 0x1724B54
@@ -29,28 +28,51 @@ MAKE_HOOK(PlayerActionManagerGameStart, PlayerActionManagerGameStartOffset, void
     PlayerActionManagerGameStart(self, e);
     GameData = nullptr;
     GameData = il2cpp_utils::GetFieldValue(reinterpret_cast<Il2CppObject*>(self), "playerData");
+    log(INFO, "GameData: %p", GameData);
     log(INFO, "Finished PlayerActionManager GameStart Hook!");
 }
+
+static float lastAcc;
 MAKE_HOOK(GunAmmoDisplayUpdate, GunAmmoDisplayUpdateOffset, void, void* self)
 {
     GunAmmoDisplayUpdate(self);
-    if(GameData == nullptr) return;
+    if(GameData == nullptr) {
+        return;
+    }
+    float accuracy;
+    il2cpp_utils::GetFieldValue(&accuracy, GameData, "accuracy");
+    if (lastAcc == accuracy) return; // No shot fired
     Il2CppObject* displayTextObj = il2cpp_utils::GetFieldValue(reinterpret_cast<Il2CppObject*>(self), "displayText");
-    Il2CppString* displayText = il2cpp_utils::GetFieldValue<Il2CppString*>(displayTextObj, "m_text");
+    static auto tmpclass = il2cpp_utils::GetClassFromName("TMPro", "TMP_Text");
+    static auto getter = il2cpp_utils::GetMethod(tmpclass, "get_text", 0);
+    static auto setter = il2cpp_utils::GetMethod(tmpclass, "set_text", 1);
+    log(INFO, "displayTextObj: %p", displayTextObj);
+    Il2CppString* displayText;
+    il2cpp_utils::RunMethod(&displayText, displayTextObj, getter);
+    log(INFO, "displayText: %p", displayText);
     std::string text = to_utf8(csstrtostr(displayText));
-    float accuracy = *(reinterpret_cast<float *>(il2cpp_functions::object_unbox(il2cpp_utils::GetFieldValue(GameData, "accuracy"))));
-    text += " (" + std::to_string(accuracy) +")";
-    il2cpp_utils::SetFieldValue(displayTextObj, "m_text", il2cpp_functions::string_new(text.data()));
+    log(INFO, "displayText text: %s", text.data());
+
+    log(INFO, "Accuracy: %.2f", accuracy);
+    char buffer[20];
+    sprintf(buffer, "%.2f", accuracy * 100);
+    auto s = std::string(buffer);
+    int bulletCount;
+    il2cpp_utils::GetFieldValue(&bulletCount, reinterpret_cast<Il2CppObject*>(self), "currentBulletCount");
+    text = std::to_string(bulletCount) + " (" + s +"%)";
+    log(INFO, "Updated text: %s", text.data());
+    il2cpp_utils::RunMethod(displayTextObj, setter, il2cpp_functions::string_new(text.data()));
+    lastAcc = accuracy;
 }
 
 __attribute__((constructor)) void lib_main()
 {
-
     log(INFO, "Installing AccCounter Hooks!");
     INSTALL_HOOK(PlayerActionManagerGameStart);
     INSTALL_HOOK(GunAmmoDisplayUpdate);
     log(INFO, "Installed AccCounter Hooks!");
-    log(INFO, "Initializing Il2Cpp Functions for AccCounter");
-    il2cpp_functions::Init();
-    log(INFO, "Initialized Il2Cpp Functions for AccCounter");
+}
+
+void load() {
+    log(INFO, "Loaded AccCounter!");
 }
