@@ -43,24 +43,23 @@ MAKE_HOOK(GunAmmoDisplayUpdate, GunAmmoDisplayUpdateOffset, void, void* self)
     il2cpp_utils::GetFieldValue(&accuracy, GameData, "accuracy");
     if (lastAcc == accuracy) return; // No shot fired
     Il2CppObject* displayTextObj = il2cpp_utils::GetFieldValue(reinterpret_cast<Il2CppObject*>(self), "displayText");
-    auto tmpclass = il2cpp_utils::GetClassFromName("TMPro", "TMP_Text");
-    auto getter = il2cpp_utils::GetMethod(tmpclass, "get_text", 0);
-    auto setter = il2cpp_utils::GetMethod(tmpclass, "set_text", 1);
+    static auto tmpclass = il2cpp_utils::GetClassFromName("TMPro", "TMP_Text");
+    static auto getter = il2cpp_utils::GetMethod(tmpclass, "get_text", 0);
+    static auto setter = il2cpp_utils::GetMethod(tmpclass, "set_text", 1);
     log(INFO, "displayTextObj: %p", displayTextObj);
     Il2CppString* displayText;
     il2cpp_utils::RunMethod(&displayText, displayTextObj, getter);
     log(INFO, "displayText: %p", displayText);
     std::string text = to_utf8(csstrtostr(displayText));
     log(INFO, "displayText text: %s", text.data());
-    
-    // AccuracyBox is actually the literal float
-    // log(INFO, "accuracyBox: %f", accuracy);
-    // float accuracy = *(reinterpret_cast<float *>(il2cpp_functions::object_unbox(accuracyBox)));
+
     log(INFO, "Accuracy: %.2f", accuracy);
     char buffer[20];
-    sprintf(buffer, "%.2f", accuracy);
+    sprintf(buffer, "%.2f", accuracy * 100);
     auto s = std::string(buffer);
-    text += " (" + s +")";
+    int bulletCount;
+    il2cpp_utils::GetFieldValue(&bulletCount, reinterpret_cast<Il2CppObject*>(self), "currentBulletCount");
+    text = std::to_string(bulletCount) + " (" + s +"%)";
     log(INFO, "Updated text: %s", text.data());
     il2cpp_utils::RunMethod(displayTextObj, setter, il2cpp_functions::string_new(text.data()));
     lastAcc = accuracy;
