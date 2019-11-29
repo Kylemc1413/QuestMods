@@ -37,7 +37,6 @@ MAKE_HOOK_OFFSETLESS(PlayerActionManagerGameStart, void, void *self, void *e)
     log(INFO, "Finished PlayerActionManager GameStart Hook!");
 }
 
-
 MAKE_HOOK_OFFSETLESS(GunAmmoDisplayUpdate, void, Il2CppObject *self)
 {
     GunAmmoDisplayUpdate(self);
@@ -58,16 +57,16 @@ MAKE_HOOK_OFFSETLESS(GunAmmoDisplayUpdate, void, Il2CppObject *self)
     if (bulletCount == lastBullets)
         return; // No shot fired
     float accuracy;
- //   float beatAccuracy = 0;
- //   if(totalHits > 0)
+    //   float beatAccuracy = 0;
+    //   if(totalHits > 0)
     il2cpp_utils::GetFieldValue(&accuracy, GameData, "accuracy");
     if (lastAcc == accuracy)
         return; // No accuracy change
     log(INFO, "OnBeat Hits: %i | Total Hits: %i", onBeatHits, totalHits);
 
     float beatAccuracy = 0;
-    if(totalHits != 0)
-    beatAccuracy = (float)onBeatHits / (float)totalHits;
+    if (totalHits != 0)
+        beatAccuracy = (float)onBeatHits / (float)totalHits;
     Il2CppObject *displayTextObj = il2cpp_utils::GetFieldValue(self, "displayText");
 
     log(INFO, "displayTextObj: %p", displayTextObj);
@@ -81,8 +80,7 @@ MAKE_HOOK_OFFSETLESS(GunAmmoDisplayUpdate, void, Il2CppObject *self)
     sprintf(buffer, "(%.2f%%)", accuracy * 100);
     char bufferBeat[10];
     sprintf(bufferBeat, "(%.2f%%)", beatAccuracy * 100);
-    text = std::to_string(bulletCount) + "\n<size=50%>" + std::string(buffer)
-    + "<size=40%>Acc\n<size=50%>" + std::string(bufferBeat) + "<size=40%>Beat";
+    text = std::to_string(bulletCount) + "\n<size=50%>" + std::string(buffer) + "<size=40%>Acc\n<size=50%>" + std::string(bufferBeat) + "<size=40%>Beat";
     log(INFO, "Updated text: %s", text.data());
     bool richTextValue = true;
     il2cpp_utils::RunMethod(displayTextObj, set_richText_method, &richTextValue);
@@ -110,17 +108,18 @@ MAKE_HOOK_OFFSETLESS(GameDataAddScore, void, Il2CppObject *self, void *ScoreItem
 {
     log(INFO, "GameData AddScore hook called.");
     GameDataAddScore(self, ScoreItem);
-  //  static auto ScoreItemKlass = il2cpp_utils::GetClassFromName("", "ScoreItem");
+    //  static auto ScoreItemKlass = il2cpp_utils::GetClassFromName("", "ScoreItem");
     int onBeatValue;
-   auto tmp = reinterpret_cast<int*>(ScoreItem);
-   onBeatValue = tmp[5];
-    if(onBeatValue == 100)
-    onBeatHits++;
+    auto tmp = reinterpret_cast<int *>(ScoreItem);
+    onBeatValue = tmp[5];
+    if (onBeatValue == 100)
+        onBeatHits++;
     totalHits++;
-   // il2cpp_utils::GetFieldValue(&onBeatValue, ScoreItem, "onBeatValue");
+    // il2cpp_utils::GetFieldValue(&onBeatValue, ScoreItem, "onBeatValue");
     log(INFO, "onBeatValue of score being added: %i", onBeatValue);
-
-}extern "C" void load() {
+}
+extern "C" void load()
+{
     log(INFO, "Loaded AccCounter!");
     log(INFO, "Installing AccCounter Hooks!");
     INSTALL_HOOK_OFFSETLESS(PlayerActionManagerGameStart, il2cpp_utils::GetMethod("", "PlayerActionManager", "OnGameStart", 1));
