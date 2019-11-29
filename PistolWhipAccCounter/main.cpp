@@ -19,7 +19,10 @@
 #include "../pistol-whip-hook/shared/utils/typedefs.h"
 
 static Il2CppObject *GameData;
-
+static float lastAcc = -1;   // To ensure it updates immediately
+static int lastBullets = -1; // To ensure it updates immediately
+static int onBeatHits = 0;
+static int totalHits = 0;
 MAKE_HOOK_OFFSETLESS(PlayerActionManagerGameStart, void, void *self, void *e)
 {
     log(INFO, "Called PlayerActionManager GameStart Hook!");
@@ -27,11 +30,13 @@ MAKE_HOOK_OFFSETLESS(PlayerActionManagerGameStart, void, void *self, void *e)
     GameData = nullptr;
     GameData = il2cpp_utils::GetFieldValue(reinterpret_cast<Il2CppObject *>(self), "playerData");
     log(INFO, "GameData: %p", GameData);
+    onBeatHits = 0;
+    totalHits = 0;
+    lastAcc = -1;
+    lastBullets = -1;
     log(INFO, "Finished PlayerActionManager GameStart Hook!");
 }
 
-static float lastAcc = -1;   // To ensure it updates immediately
-static int lastBullets = -1; // To ensure it updates immediately
 
 MAKE_HOOK_OFFSETLESS(GunAmmoDisplayUpdate, void, Il2CppObject *self)
 {
@@ -53,6 +58,9 @@ MAKE_HOOK_OFFSETLESS(GunAmmoDisplayUpdate, void, Il2CppObject *self)
     if (bulletCount == lastBullets)
         return; // No shot fired
     float accuracy;
+    float beatAccuracy = 0;
+    if(totalHits > 0)
+        beatAccuracy = onBeatHits / totalHits;
     il2cpp_utils::GetFieldValue(&accuracy, GameData, "accuracy");
     if (lastAcc == accuracy)
         return; // No accuracy change
@@ -68,7 +76,10 @@ MAKE_HOOK_OFFSETLESS(GunAmmoDisplayUpdate, void, Il2CppObject *self)
     log(INFO, "Accuracy: %.2f", accuracy);
     char buffer[10];
     sprintf(buffer, "(%.2f%%)", accuracy * 100);
-    text = std::to_string(bulletCount) + "\n<size=75%>" + std::string(buffer);
+    char bufferBeat[10];
+    sprintf(bufferBeat, "(%.2f%%)", beatAccuracy * 100);
+    text = std::to_string(bulletCount) + "\n<size=75%>" + std::string(buffer)
+    + "<size=50%>Acc\n<size=75%>" + std::string(bufferBeat) + "<size=50%>Beat";
     log(INFO, "Updated text: %s", text.data());
     bool richTextValue = true;
     il2cpp_utils::RunMethod(displayTextObj, set_richText_method, &richTextValue);
@@ -92,13 +103,18 @@ MAKE_HOOK_OFFSETLESS(GunFire, void, void *self)
     GunFire(self);
 }
 
-MAKE_HOOK_OFFSETLESS(GameDataAddScore, void, Il2CppObject *self, Il2CppObject *ScoreItem)
+MAKE_HOOK_OFFSETLESS(GameDataAddScore, void, Il2CppObject *self, void *ScoreItem)
 {
     log(INFO, "GameData AddScore hook called.");
     GameDataAddScore(self, ScoreItem);
-    static auto ScoreItemKlass = il2cpp_utils::GetClassFromName("", "ScoreItem");
+  //  static auto ScoreItemKlass = il2cpp_utils::GetClassFromName("", "ScoreItem");
     int onBeatValue;
-    il2cpp_utils::GetFieldValue(&onBeatValue, ScoreItem, "onBeatValue");
+   auto tmp = reinterpret_cast<int*>(ScoreItem);
+   onBeatValue = tmp[5];
+    if(onBeatValue == 100)
+    onBeatHits++;
+    totalHits++;
+   // il2cpp_utils::GetFieldValue(&onBeatValue, ScoreItem, "onBeatValue");
     log(INFO, "onBeatValue of score being added: %i", onBeatValue);
 
 }
