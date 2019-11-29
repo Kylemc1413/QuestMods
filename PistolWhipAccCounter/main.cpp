@@ -58,13 +58,16 @@ MAKE_HOOK_OFFSETLESS(GunAmmoDisplayUpdate, void, Il2CppObject *self)
     if (bulletCount == lastBullets)
         return; // No shot fired
     float accuracy;
-    float beatAccuracy = 0;
-    if(totalHits > 0)
-        beatAccuracy = onBeatHits / totalHits;
+ //   float beatAccuracy = 0;
+ //   if(totalHits > 0)
     il2cpp_utils::GetFieldValue(&accuracy, GameData, "accuracy");
     if (lastAcc == accuracy)
         return; // No accuracy change
+    log(INFO, "OnBeat Hits: %i | Total Hits: %i", onBeatHits, totalHits);
 
+    float beatAccuracy = 0;
+    if(totalHits != 0)
+    beatAccuracy = (float)onBeatHits / (float)totalHits;
     Il2CppObject *displayTextObj = il2cpp_utils::GetFieldValue(self, "displayText");
 
     log(INFO, "displayTextObj: %p", displayTextObj);
@@ -78,8 +81,8 @@ MAKE_HOOK_OFFSETLESS(GunAmmoDisplayUpdate, void, Il2CppObject *self)
     sprintf(buffer, "(%.2f%%)", accuracy * 100);
     char bufferBeat[10];
     sprintf(bufferBeat, "(%.2f%%)", beatAccuracy * 100);
-    text = std::to_string(bulletCount) + "\n<size=75%>" + std::string(buffer)
-    + "<size=50%>Acc\n<size=75%>" + std::string(bufferBeat) + "<size=50%>Beat";
+    text = std::to_string(bulletCount) + "\n<size=50%>" + std::string(buffer)
+    + "<size=40%>Acc\n<size=50%>" + std::string(bufferBeat) + "<size=40%>Beat";
     log(INFO, "Updated text: %s", text.data());
     bool richTextValue = true;
     il2cpp_utils::RunMethod(displayTextObj, set_richText_method, &richTextValue);
@@ -117,12 +120,8 @@ MAKE_HOOK_OFFSETLESS(GameDataAddScore, void, Il2CppObject *self, void *ScoreItem
    // il2cpp_utils::GetFieldValue(&onBeatValue, ScoreItem, "onBeatValue");
     log(INFO, "onBeatValue of score being added: %i", onBeatValue);
 
-}
-static void *imagehandle;
-MAKE_HOOK_OFFSETLESS(il2cppInit, void, const char *domainName)
-{
-    dlclose(imagehandle); // the library has now been opened naturally
-    il2cppInit(domainName);
+}extern "C" void load() {
+    log(INFO, "Loaded AccCounter!");
     log(INFO, "Installing AccCounter Hooks!");
     INSTALL_HOOK_OFFSETLESS(PlayerActionManagerGameStart, il2cpp_utils::GetMethod("", "PlayerActionManager", "OnGameStart", 1));
     INSTALL_HOOK_OFFSETLESS(GunAmmoDisplayUpdate, il2cpp_utils::GetMethod("", "GunAmmoDisplay", "Update", 0));
@@ -135,15 +134,4 @@ MAKE_HOOK_OFFSETLESS(il2cppInit, void, const char *domainName)
 __attribute__((constructor)) void lib_main()
 {
     log(INFO, "Constructed AccCounter!");
-
-    imagehandle = dlopen(IL2CPP_SO_PATH, RTLD_LOCAL | RTLD_LAZY);
-    if (!imagehandle)
-    {
-        log(ERROR, "Failed to dlopen %s: %s", IL2CPP_SO_PATH, dlerror());
-        return;
-    }
-
-    auto init = dlsym(imagehandle, "il2cpp_init");
-    log(INFO, "init_hook: %p, init: %p", il2cppInit, init);
-    INSTALL_HOOK_DIRECT(il2cppInit, init);
 }
