@@ -19,13 +19,7 @@
 #include "../pistol-whip-hook/shared/utils/typedefs.h"
 
 static Il2CppObject *GameData;
-enum LOG_VERBOSE_TYPE {
-    CRITICAL = ANDROID_LOG_FATAL,
-    ERROR = ANDROID_LOG_ERROR,
-    WARNING = ANDROID_LOG_WARN,
-    INFO = ANDROID_LOG_INFO,
-    DEBUG = ANDROID_LOG_DEBUG
-};
+
 MAKE_HOOK_OFFSETLESS(PlayerActionManagerGameStart, void, void *self, void *e)
 {
     log(INFO, "Called PlayerActionManager GameStart Hook!");
@@ -72,9 +66,9 @@ MAKE_HOOK_OFFSETLESS(GunAmmoDisplayUpdate, void, Il2CppObject *self)
     std::string text = to_utf8(csstrtostr(displayText));
     log(INFO, "displayText text: %s", text.data());
     log(INFO, "Accuracy: %.2f", accuracy);
-    char buffer[30]; // 20 is a reasonably large character guess?
-    sprintf(buffer, "%i\n<size=75%>(%.2f%%)", bulletCount, accuracy * 100);
-    text = std::string(buffer);
+    char buffer[10];
+    sprintf(buffer, "(%.2f%%)", accuracy * 100);
+    text = std::to_string(bulletCount) + "\n<size=75%>" + std::string(buffer);
     log(INFO, "Updated text: %s", text.data());
     bool richTextValue = true;
     il2cpp_utils::RunMethod(displayTextObj, set_richText_method, &richTextValue);
