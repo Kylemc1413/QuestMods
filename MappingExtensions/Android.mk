@@ -35,6 +35,6 @@ LOCAL_CFLAGS    := -DMOD_ID='"MappingExtensions"' -DVERSION='"0.14.2"'
 LOCAL_MODULE    := mappingextensions
 LOCAL_CPPFLAGS := -std=c++2a 
 #LOCAL_SHARED_LIBRARIES := testil2cpp
-LOCAL_SRC_FILES := ../beatsaber-hook/shared/inline-hook/And64InlineHook.cpp ../beatsaber-hook/shared/utils/il2cpp-utils.cpp ../beatsaber-hook/shared/utils/utils.cpp main.cpp ../beatsaber-hook/shared/inline-hook/inlineHook.c ../beatsaber-hook/shared/inline-hook/relocate.c
+LOCAL_SRC_FILES := ../beatsaber-hook/shared/inline-hook/And64InlineHook.cpp ../beatsaber-hook/shared/utils/il2cpp-utils.cpp ../beatsaber-hook/shared/utils/il2cpp-functions.cpp ../beatsaber-hook/shared/utils/utils.cpp main.cpp ../beatsaber-hook/shared/inline-hook/inlineHook.c ../beatsaber-hook/shared/inline-hook/relocate.c
 #LOCAL_STATIC_LIBRARIES := libhook
 include $(BUILD_SHARED_LIBRARY)

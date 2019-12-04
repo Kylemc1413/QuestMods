@@ -1,7 +1,5 @@
-#include <android/log.h>
 #include <stdlib.h>
 #include <time.h>
-#include <stdalign.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <math.h>
@@ -9,46 +7,21 @@
 #include <vector>
 #include <limits>
 #include <map>
-#include "../beatsaber-hook/shared/utils/logging.h"
-#include "../beatsaber-hook/shared/inline-hook/inlineHook.h"
 #include "../beatsaber-hook/shared/utils/utils.h"
-#include "../beatsaber-hook/shared/utils/typedefs.h"
-//#define line_y_pos_for_line_layer_offset 0x4F5AC0
-#define spawn_flying_score_offset 0x17D82B8
-#define get_note_offset_offset 0x1795E40
-#define note_rotation_offset 0x9D9640
-#define jump_gravity_for_line_layer_offset 0x1794DD0
 
-#define note_rotation_mirror_offset 0x9DD0A4
-#define note_mirror_offset 0x9DD13C
-#define obstacle_mirror_offset 0xC362F0
-
-#define get_beatmap_data_from_savedata_offset 0x1784F70
-#define mirror_transformed_data_offset 0x1780FF0
-#define noarrows_transformed_data_offset 0x17828DC
-#define obstacles_bombs_transformed_data_offset 0x1781FBC
-
-#define obstacle_controller_init_offset 0xC357EC
-#define color_manager_set_color_scheme_offset 0x17BF3E4
-
-#define spawn_controller_init_offset 0x17944B0
-#define standard_level_detail_view_refresh_content_offset 0x99A36C
-#define obstacle_execution_ratings_offset 0x1792D74
 #define MOD_ID "MappingExtenions"
 #define VERSION "0.14.2"
 
-using il2cpp_utils::GetClassFromName;
 using TYPEDEFS_H::Quaternion;
-#undef log_base
-#define log_base(...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[MappingExtensions] " __VA_ARGS__)
+
 static void dump_real(int before, int after, void *ptr)
 {
-    log_base("Dumping Immediate Pointer: %p: %lx", ptr, *reinterpret_cast<long *>(ptr));
+    log(INFO, "Dumping Immediate Pointer: %p: %lx", ptr, *reinterpret_cast<long *>(ptr));
     auto begin = static_cast<long *>(ptr) - before;
     auto end = static_cast<long *>(ptr) + after;
     for (auto cur = begin; cur != end; ++cur)
     {
-        log_base("0x%lx: %lx", (long)cur - (long)ptr, *cur);
+        log(INFO, "0x%lx: %lx", (long)cur - (long)ptr, *cur);
     }
 }
 
@@ -437,12 +410,11 @@ static Il2CppClass *difficultyBeatmapClass;
 static Il2CppClass *standardLevelDetailViewClass;
 static const MethodInfo *getDiffBeatmapInfo;
 static const MethodInfo *getNjsMethodInfo;
-MAKE_HOOK(standard_level_detail_view_refresh_content, standard_level_detail_view_refresh_content_offset, void, void *self)
+MAKE_HOOK_OFFSETLESS(StandardLevelDetailView_RefreshContent, void, void *self)
 {
-    log_base("Called leveldetailview refresh hook");
-    standard_level_detail_view_refresh_content(self);
+    StandardLevelDetailView_RefreshContent(self);
     if (standardLevelDetailViewClass == nullptr)
-        standardLevelDetailViewClass = GetClassFromName("", "StandardLevelDetailView");
+        standardLevelDetailViewClass = il2cpp_utils::GetClassFromName("", "StandardLevelDetailView");
     if (standardLevelDetailViewClass != nullptr && getDiffBeatmapInfo == nullptr)
     {
         getDiffBeatmapInfo = il2cpp_functions::class_get_method_from_name(standardLevelDetailViewClass, "get_selectedDifficultyBeatmap", 0);
@@ -454,22 +426,21 @@ MAKE_HOOK(standard_level_detail_view_refresh_content, standard_level_detail_view
     }
 }
 
-MAKE_HOOK(spawn_controller_init, spawn_controller_init_offset, void, void *self, float beatsPerMinute, int noteLinesCount,
+MAKE_HOOK_OFFSETLESS(BeatmapObjectSpawnController_Init, void, void *self, float beatsPerMinute, int noteLinesCount,
           float noteJumpMovementSpeed, float noteJumpStartBeatOffset, bool disappearingArrows, bool ghostNotes)
 {
 
-    log_base("Called spawn controller init hook");
     skipWallRatings = false;
     float njs = 0;
     if (difficultyBeatmapClass == nullptr)
-        difficultyBeatmapClass = GetClassFromName("", "BeatmapLevelSO/DifficultyBeatmap");
+        difficultyBeatmapClass = il2cpp_utils::GetClassFromName("", "BeatmapLevelSO/DifficultyBeatmap");
     if (difficultyBeatmapClass != nullptr && getNjsMethodInfo == nullptr)
     {
         getNjsMethodInfo = il2cpp_functions::class_get_method_from_name(difficultyBeatmapClass, "get_noteJumpMovementSpeed", 0);
     }
     else
     {
-        log_base("Difficulty Beatmap Class null");
+        log(INFO, "Difficulty Beatmap Class null");
     }
     if (getNjsMethodInfo != nullptr && storedDiffBeatmap != nullptr)
     {
@@ -479,35 +450,28 @@ MAKE_HOOK(spawn_controller_init, spawn_controller_init_offset, void, void *self,
     else
     {
         if (storedDiffBeatmap == nullptr)
-            log_base("Beatmap null");
+            log(INFO, "Beatmap null");
         else
-            log_base("Get NJS Method info null");
+            log(INFO, "Get NJS Method info null");
     }
     if (njs < 0)
         noteJumpMovementSpeed = njs;
 
-    return spawn_controller_init(self, beatsPerMinute, noteLinesCount, noteJumpMovementSpeed, noteJumpStartBeatOffset, disappearingArrows, ghostNotes);
+    return BeatmapObjectSpawnController_Init(self, beatsPerMinute, noteLinesCount, noteJumpMovementSpeed, noteJumpStartBeatOffset, disappearingArrows, ghostNotes);
 }
 
-MAKE_HOOK(line_y_pos, 0x12FC1F0, float, BeatmapObjectSpawnController *self, int lineLayer)
-{
-    log_base("line_y_pos hook called");
-    return line_y_pos(self, lineLayer);
-}
-MAKE_HOOK(jump_gravity_for_line_layer, jump_gravity_for_line_layer_offset, float, BeatmapObjectSpawnController *self, int lineLayer, int startLineLayer)
+MAKE_HOOK_OFFSETLESS(BeatmapObjectSpawnController_JumpGravityForLineLayer, float, BeatmapObjectSpawnController *self, int lineLayer, int startLineLayer)
 {
 
-    float original = jump_gravity_for_line_layer(self, lineLayer, startLineLayer);
+    float original = BeatmapObjectSpawnController_JumpGravityForLineLayer(self, lineLayer, startLineLayer);
 
     float result = (float)2 * (HighestJumpPosYForLineLayer(lineLayer, self->topLinesHighestJumpPosY, self->upperLinesHighestJumpPosY, self->baseLinesHighestJumpPosY, self->globalYJumpOffset) - LineYPosForLineLayer(startLineLayer, self->topLinesYPos, self->upperLinesYPos, self->baseLinesYPos)) / powf(self->jumpDistance / self->noteJumpMovementSpeed * 0.5, 2);
 
     return result;
 }
-MAKE_HOOK(note_rotation, note_rotation_offset, Quaternion, int cutDirection)
+MAKE_HOOK_OFFSETLESS(NoteCutDirectionExtensions_Rotation, Quaternion, int cutDirection)
 {
-    log_base("Called note_rotation Hook");
-
-    Quaternion result1 = note_rotation(cutDirection);
+    Quaternion result1 = NoteCutDirectionExtensions_Rotation(cutDirection);
     //  log(INFO,"Original result %f, %f, %f, %f", result1.x, result1.y, result1.z, result1.w);
     if (cutDirection >= 1000 && cutDirection <= 1360)
     {
@@ -524,21 +488,18 @@ MAKE_HOOK(note_rotation, note_rotation_offset, Quaternion, int cutDirection)
     }
 }
 
-MAKE_HOOK(note_rotation_mirror, note_rotation_mirror_offset, void, NoteData *self)
+MAKE_HOOK_OFFSETLESS(NoteData_MirrorTransformCutDirection, void, NoteData *self)
 {
-    //    log(INFO,"Called note_rotation_mirror Hook CutDirection %i", self->noteCutDirection);
     int state = self->noteCutDirection;
     if (state >= 1000 && state <= 1360)
     {
         int newdir = 2360 - state;
         self->noteCutDirection = newdir;
-        //       log(INFO,"Finished note_rotation_mirror Hook");
         return;
     }
     else
     {
-        //     log(INFO,"Finished note_rotation_mirror Hook");
-        return note_rotation_mirror(self);
+        return NoteData_MirrorTransformCutDirection(self);
     }
 }
 
@@ -673,9 +634,8 @@ void MirrorLineIndex(BeatmapObjectData *object, int type, int lineIndex)
         }
     }
 }
-MAKE_HOOK(mirror_transformed_data, mirror_transformed_data_offset, BeatmapData *, BeatmapData *beatmapData)
+MAKE_HOOK_OFFSETLESS(BeatDataMirrorTransform_CreateTransformedData, BeatmapData *, BeatmapData *beatmapData)
 {
-    log_base("Called mirror_transformed_data Hook");
     for (int i = 0; i < beatmapData->beatmapLinesData->Length(); ++i)
     {
         for (int j = 0; j < beatmapData->beatmapLinesData->values[i]->beatmapObjectData->Length(); ++j)
@@ -683,17 +643,16 @@ MAKE_HOOK(mirror_transformed_data, mirror_transformed_data_offset, BeatmapData *
             int index = beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex;
             if (index > 3 || index < 0)
             {
-                log_base("Non-Standard Line indicies detected. Returning original data");
+                log(INFO, "Non-Standard Line indicies detected. Returning original data");
                 return beatmapData;
             }
         }
     }
-    return mirror_transformed_data(beatmapData);
+    return BeatDataMirrorTransform_CreateTransformedData(beatmapData);
 }
 
-MAKE_HOOK(noarrows_transformed_data, noarrows_transformed_data_offset, BeatmapData *, BeatmapData *beatmapData, bool randomColors)
+MAKE_HOOK_OFFSETLESS(BeatmapDataNoArrowsTransform_CreateTransformedData, BeatmapData *, BeatmapData *beatmapData, bool randomColors)
 {
-    log_base("Called noarrows_transformed_data Hook");
     std::map<int, int> extendedLanesMap;
     for (int i = 0; i < beatmapData->beatmapLinesData->Length(); ++i)
     {
@@ -714,7 +673,7 @@ MAKE_HOOK(noarrows_transformed_data, noarrows_transformed_data_offset, BeatmapDa
             }
         }
     }
-    BeatmapData *result = noarrows_transformed_data(beatmapData, randomColors);
+    BeatmapData *result = BeatmapDataNoArrowsTransform_CreateTransformedData(beatmapData, randomColors);
     for (int i = 0; i < result->beatmapLinesData->Length(); ++i)
     {
         for (int j = 0; j < result->beatmapLinesData->values[i]->beatmapObjectData->Length(); ++j)
@@ -745,9 +704,8 @@ MAKE_HOOK(noarrows_transformed_data, noarrows_transformed_data_offset, BeatmapDa
     }
     return result;
 }
-MAKE_HOOK(obstacles_bombs_transformed_data, obstacles_bombs_transformed_data_offset, BeatmapData *, BeatmapData *beatmapData, int enabledObstaclesType, bool noBombs)
+MAKE_HOOK_OFFSETLESS(BeatmapDataObstaclesAndBombsTransform_CreateTransformedData, BeatmapData *, BeatmapData *beatmapData, int enabledObstaclesType, bool noBombs)
 {
-    log_base("Called obstacles_bombs_transformed_data Hook");
     std::map<int, int> extendedLanesMap;
     for (int i = 0; i < beatmapData->beatmapLinesData->Length(); ++i)
     {
@@ -768,7 +726,7 @@ MAKE_HOOK(obstacles_bombs_transformed_data, obstacles_bombs_transformed_data_off
             }
         }
     }
-    BeatmapData *result = obstacles_bombs_transformed_data(beatmapData, enabledObstaclesType, noBombs);
+    BeatmapData *result = BeatmapDataObstaclesAndBombsTransform_CreateTransformedData(beatmapData, enabledObstaclesType, noBombs);
     for (int i = 0; i < result->beatmapLinesData->Length(); ++i)
     {
         for (int j = 0; j < result->beatmapLinesData->values[i]->beatmapObjectData->Length(); ++j)
@@ -800,12 +758,11 @@ MAKE_HOOK(obstacles_bombs_transformed_data, obstacles_bombs_transformed_data_off
     return result;
 }
 
-MAKE_HOOK(note_mirror, note_mirror_offset, void, NoteData *self, int lineCount)
+MAKE_HOOK_OFFSETLESS(NoteData_MirrorLineIndex, void, NoteData *self, int lineCount)
 {
-    //   log(INFO,"Called note_mirror Hook LineIndex %i, flipIndex %i", self->lineIndex, self->flipLineIndex);
     int lineIndex = self->lineIndex;
     int flipLineIndex = self->flipLineIndex;
-    note_mirror(self, lineCount);
+    NoteData_MirrorLineIndex(self, lineCount);
     if (lineIndex > 3 || lineIndex < 0)
     {
         if (lineIndex >= 1000 || lineIndex <= -1000)
@@ -872,14 +829,12 @@ MAKE_HOOK(note_mirror, note_mirror_offset, void, NoteData *self, int lineCount)
             self->flipLineIndex = newlaneCount - diff - 1 - flipLineIndex;
         }
     }
-    //      log(INFO,"Finished note_mirror Hook");
     return;
 }
-MAKE_HOOK(obstacle_mirror, obstacle_mirror_offset, void, ObstacleData *self, int lineCount)
+MAKE_HOOK_OFFSETLESS(ObstacleData_MirrorLineIndex, void, ObstacleData *self, int lineCount)
 {
-    //log(INFO,"Called obstacle_mirror Hook");
     int __state = self->lineIndex;
-    obstacle_mirror(self, lineCount);
+    ObstacleData_MirrorLineIndex(self, lineCount);
 
     bool precisionWidth = self->width >= 1000;
     //   Console.WriteLine("Width: " + __instance.width);
@@ -930,19 +885,17 @@ MAKE_HOOK(obstacle_mirror, obstacle_mirror_offset, void, ObstacleData *self, int
         }
     }
 }
-MAKE_HOOK(spawn_flying_score, spawn_flying_score_offset, void, void *self, void *noteCutInfo, int noteLineIndex, int multiplier, Vector3 pos, Color color)
+MAKE_HOOK_OFFSETLESS(FlyingScoreSpawner_SpawnFlyingScore, void, void *self, void *noteCutInfo, int noteLineIndex, int multiplier, Vector3 pos, Color color)
 {
-    //    log_base("Called spawn_flying_score Hook");
     if (noteLineIndex > 3)
         noteLineIndex = 3;
     if (noteLineIndex < 0)
         noteLineIndex = 0;
-    return spawn_flying_score(self, noteCutInfo, noteLineIndex, multiplier, pos, color);
+    return FlyingScoreSpawner_SpawnFlyingScore(self, noteCutInfo, noteLineIndex, multiplier, pos, color);
 }
-MAKE_HOOK(get_note_offset, get_note_offset_offset, Vector3, BeatmapObjectSpawnController *self, int noteLineIndex, int noteLineLayer)
+MAKE_HOOK_OFFSETLESS(BeatmapObjectSpawnController_GetNoteOffset, Vector3, BeatmapObjectSpawnController *self, int noteLineIndex, int noteLineLayer)
 {
-    //   log_base("Called get_note_offset Hook");
-    Vector3 offset = get_note_offset(self, noteLineIndex, noteLineLayer);
+    Vector3 offset = BeatmapObjectSpawnController_GetNoteOffset(self, noteLineIndex, noteLineLayer);
     offset.x = 1.0;
     offset.y = 0;
     offset.z = 0;
@@ -969,12 +922,11 @@ static const MethodInfo *SetSizeMethodInfo;
 static Il2CppClass *ColorSchemeClass;
 static const MethodInfo *get_obstaclesColor;
 static Color obstacleColor;
-MAKE_HOOK(color_manager_set_color_scheme, color_manager_set_color_scheme_offset, void, void *self, void *colorScheme)
+MAKE_HOOK_OFFSETLESS(ColorManager_SetColorScheme, void, void *self, void *colorScheme)
 {
-    log_base("Callec color_manager_set_color_scheme hook");
-    color_manager_set_color_scheme(self, colorScheme);
+    ColorManager_SetColorScheme(self, colorScheme);
     if (ColorSchemeClass == nullptr)
-        ColorSchemeClass = GetClassFromName("", "ColorScheme");
+        ColorSchemeClass = il2cpp_utils::GetClassFromName("", "ColorScheme");
     if (get_obstaclesColor == nullptr)
         get_obstaclesColor = il2cpp_functions::class_get_method_from_name(ColorSchemeClass, "get_obstaclesColor", 0);
 
@@ -984,7 +936,7 @@ MAKE_HOOK(color_manager_set_color_scheme, color_manager_set_color_scheme_offset,
 void SetStrechableObstacleSize(void *object, float paramOne, float paramTwo, float paramThree)
 {
     if (stretchableObstacleClass == nullptr)
-        stretchableObstacleClass = GetClassFromName("", "StretchableObstacle");
+        stretchableObstacleClass = il2cpp_utils::GetClassFromName("", "StretchableObstacle");
 
     if (SetSizeMethodInfo == nullptr)
         SetSizeMethodInfo = il2cpp_functions::class_get_method_from_name(stretchableObstacleClass, "SetSizeAndColor", 4);
@@ -995,22 +947,21 @@ void SetStrechableObstacleSize(void *object, float paramOne, float paramTwo, flo
     il2cpp_functions::runtime_invoke(SetSizeMethodInfo, object, params, &exception);
 }
 
-MAKE_HOOK(obstacle_controller_init, obstacle_controller_init_offset, void, Il2CppObject *self, ObstacleData *obstacleData, Vector3 startPos, Vector3 midPos, Vector3 endPos,
+MAKE_HOOK_OFFSETLESS(ObstacleController_Init, void, Il2CppObject *self, ObstacleData *obstacleData, Vector3 startPos, Vector3 midPos, Vector3 endPos,
           float move1Duration, float move2Duration, float startTimeOffset, float singleLineWidth, float obsHeight)
 {
-    log_base("Called obstacle_controller_init Hook");
-    static auto startPosInfo = il2cpp_functions::class_get_field_from_name(GetClassFromName("", "ObstacleController"), "_startPos");
-    static auto midPosInfo = il2cpp_functions::class_get_field_from_name(GetClassFromName("", "ObstacleController"), "_midPos");
-    static auto endPosInfo = il2cpp_functions::class_get_field_from_name(GetClassFromName("", "ObstacleController"), "_endPos");
+    static auto startPosInfo = il2cpp_functions::class_get_field_from_name(il2cpp_utils::GetClassFromName("", "ObstacleController"), "_startPos");
+    static auto midPosInfo = il2cpp_functions::class_get_field_from_name(il2cpp_utils::GetClassFromName("", "ObstacleController"), "_midPos");
+    static auto endPosInfo = il2cpp_functions::class_get_field_from_name(il2cpp_utils::GetClassFromName("", "ObstacleController"), "_endPos");
 
-    static auto obstacleDataInfo = il2cpp_functions::class_get_field_from_name(GetClassFromName("", "ObstacleController"), "_obstacleData");
+    static auto obstacleDataInfo = il2cpp_functions::class_get_field_from_name(il2cpp_utils::GetClassFromName("", "ObstacleController"), "_obstacleData");
     il2cpp_functions::field_set_value(self, obstacleDataInfo, obstacleData);
 
-    obstacle_controller_init(self, obstacleData, startPos, midPos, endPos, move1Duration, move2Duration, startTimeOffset, singleLineWidth, obsHeight);
+    ObstacleController_Init(self, obstacleData, startPos, midPos, endPos, move1Duration, move2Duration, startTimeOffset, singleLineWidth, obsHeight);
     if ((obstacleData->obstacleType == 0 || obstacleData->obstacleType == 1) && !(obstacleData->width >= 1000))
         return;
     skipWallRatings = true;
-    //   obstacle_controller_init(self, obstacleData, startPos, midPos, endPos, move1Duration, move2Duration, startTimeOffset, singleLineWidth);
+    //   ObstacleController_Init(self, obstacleData, startPos, midPos, endPos, move1Duration, move2Duration, startTimeOffset, singleLineWidth);
     int mode = (obstacleData->obstacleType >= 4001 && obstacleData->obstacleType <= 4100000) ? 1 : 0;
     int height = 0;
     int startHeight = 0;
@@ -1056,16 +1007,16 @@ MAKE_HOOK(obstacle_controller_init, obstacle_controller_init_offset, void, Il2Cp
     {
         multiplier = (float)height / 1000;
     }
-    static auto controllerBoundsInfo = il2cpp_functions::class_get_field_from_name(GetClassFromName("", "ObstacleController"), "_bounds");
-    static auto stretchableObstacleBoundsInfo = il2cpp_functions::class_get_field_from_name(GetClassFromName("", "StretchableObstacle"), "_bounds");
-    static auto stretchableObstacleInfo = il2cpp_functions::class_get_field_from_name(GetClassFromName("", "ObstacleController"), "_stretchableObstacle");
+    static auto controllerBoundsInfo = il2cpp_functions::class_get_field_from_name(il2cpp_utils::GetClassFromName("", "ObstacleController"), "_bounds");
+    static auto stretchableObstacleBoundsInfo = il2cpp_functions::class_get_field_from_name(il2cpp_utils::GetClassFromName("", "StretchableObstacle"), "_bounds");
+    static auto stretchableObstacleInfo = il2cpp_functions::class_get_field_from_name(il2cpp_utils::GetClassFromName("", "ObstacleController"), "_stretchableObstacle");
     auto stretchableObstacle = il2cpp_functions::field_get_value_object(stretchableObstacleInfo, self);
     SetStrechableObstacleSize(stretchableObstacle, (num * 0.98f), (obsHeight * multiplier), (length));
     //  dump_real(0, 50, self->stretchableObstacle);
     auto stretchableObstacleBounds = il2cpp_functions::field_get_value_object(stretchableObstacleBoundsInfo, stretchableObstacle);
-  //  Vector3 center = *(reinterpret_cast<Vector3*>(il2cpp_functions::object_unbox(il2cpp_functions::field_get_value_object(il2cpp_functions::class_get_field_from_name(GetClassFromName("UnityEngine", "Bounds"), "m_Center"), stretchableObstacleBounds))));
-  //      Vector3 extents = *(reinterpret_cast<Vector3*>(il2cpp_functions::object_unbox(il2cpp_functions::field_get_value_object(il2cpp_functions::class_get_field_from_name(GetClassFromName("UnityEngine", "Bounds"), "m_Extents"), stretchableObstacleBounds))));
-  //  log_base( "New Bounds %f, %f, %f |  %f, %f, %f ", center.x, center.y, center.z,extents.x, extents.y, extents.z );
+  //  Vector3 center = *(reinterpret_cast<Vector3*>(il2cpp_functions::object_unbox(il2cpp_functions::field_get_value_object(il2cpp_functions::class_get_field_from_name(il2cpp_utils::GetClassFromName("UnityEngine", "Bounds"), "m_Center"), stretchableObstacleBounds))));
+  //      Vector3 extents = *(reinterpret_cast<Vector3*>(il2cpp_functions::object_unbox(il2cpp_functions::field_get_value_object(il2cpp_functions::class_get_field_from_name(il2cpp_utils::GetClassFromName("UnityEngine", "Bounds"), "m_Extents"), stretchableObstacleBounds))));
+  //  log(INFO,  "New Bounds %f, %f, %f |  %f, %f, %f ", center.x, center.y, center.z,extents.x, extents.y, extents.z );
     il2cpp_functions::field_set_value(self, controllerBoundsInfo, stretchableObstacleBounds);
 }
 struct ExecutionRatingRecorder
@@ -1080,19 +1031,18 @@ struct ExecutionRatingRecorder
     void *cutScoreHandlers;
     void *unusedCutScoreHandlers;
 };
-MAKE_HOOK(obstacle_execution_ratings, obstacle_execution_ratings_offset, void, ExecutionRatingRecorder *self, BeatmapObjectSpawnController *spawnController, ObstacleController *obstacleController)
+MAKE_HOOK_OFFSETLESS(BeatmapObjectExecutionRatingsRecorder_HandleBeatmapObjectSpawnControllerObstacleDidPassAvoidedMark, void, ExecutionRatingRecorder *self, BeatmapObjectSpawnController *spawnController, ObstacleController *obstacleController)
 {
     if (skipWallRatings)
         return;
     else
     {
-        return obstacle_execution_ratings(self, spawnController, obstacleController);
+        return BeatmapObjectExecutionRatingsRecorder_HandleBeatmapObjectSpawnControllerObstacleDidPassAvoidedMark(self, spawnController, obstacleController);
     }
 }
-MAKE_HOOK(get_beatmap_data_from_savedata, get_beatmap_data_from_savedata_offset, BeatmapData *, List<SaveDataNoteData *> *noteSaveData,
+MAKE_HOOK_OFFSETLESS(BeatmapDataLoader_GetBeatmapDataFromBeatmapSaveData, BeatmapData *, List<SaveDataNoteData *> *noteSaveData,
           List<SaveDataObstacleData *> *obstaclesSaveData, List<SaveDataEventData *> *eventsSaveData, float beatsPerMinute, float shuffle, float shufflePeriod)
 {
-    log_base("Called get_beatmap_data_from_savedata Hook");
     std::map<int, int> extendedLanesMap;
     int num = -1;
     for (int i = 0; i < noteSaveData->size; ++i)
@@ -1132,7 +1082,7 @@ MAKE_HOOK(get_beatmap_data_from_savedata, get_beatmap_data_from_savedata_offset,
         }
     }
 
-    BeatmapData *result = get_beatmap_data_from_savedata(noteSaveData, obstaclesSaveData, eventsSaveData, beatsPerMinute, shuffle, shufflePeriod);
+    BeatmapData *result = BeatmapDataLoader_GetBeatmapDataFromBeatmapSaveData(noteSaveData, obstaclesSaveData, eventsSaveData, beatsPerMinute, shuffle, shufflePeriod);
     for (int i = 0; i < result->beatmapLinesData->Length(); ++i)
     {
         for (int j = 0; j < result->beatmapLinesData->values[i]->beatmapObjectData->Length(); ++j)
@@ -1150,7 +1100,7 @@ MAKE_HOOK(get_beatmap_data_from_savedata, get_beatmap_data_from_savedata_offset,
     }
     if (extendedLanesMap.size() > 0)
     {
-        log_base("Attempting to correct extended lanes not flipping");
+        log(INFO, "Attempting to correct extended lanes not flipping");
         std::vector<NoteData *> allnotes;
         //Get all the notes
         for (int i = 0; i < result->beatmapLinesData->Length(); ++i)
@@ -1201,33 +1151,32 @@ MAKE_HOOK(get_beatmap_data_from_savedata, get_beatmap_data_from_savedata_offset,
         ProcessBasicNotesInTimeRow(list2, std::numeric_limits<float>::max());
     }
 
-    log_base("get_beatmap_data_from_savedata Hook finished");
     return result;
 }
 
-__attribute__((constructor)) void lib_main()
+extern "C" void load()
 {
 
-    log_base("Installing Mapping Extensions Hooks!");
-    INSTALL_HOOK(note_rotation);
-    INSTALL_HOOK(note_rotation_mirror);
-    INSTALL_HOOK(note_mirror);
-    INSTALL_HOOK(obstacle_mirror);
-    INSTALL_HOOK(spawn_flying_score);
-    INSTALL_HOOK(get_note_offset);
-    INSTALL_HOOK(get_beatmap_data_from_savedata);
-    INSTALL_HOOK(jump_gravity_for_line_layer);
-    INSTALL_HOOK(line_y_pos);
-    INSTALL_HOOK(mirror_transformed_data);
-    INSTALL_HOOK(noarrows_transformed_data);
-    INSTALL_HOOK(obstacles_bombs_transformed_data);
-    INSTALL_HOOK(obstacle_controller_init);
-    INSTALL_HOOK(color_manager_set_color_scheme);
-    INSTALL_HOOK(standard_level_detail_view_refresh_content);
-    INSTALL_HOOK(spawn_controller_init);
-    INSTALL_HOOK(obstacle_execution_ratings);
-    log_base("Installed  Mapping Extensions Hooks!");
-    log_base("Initializing Il2Cpp Functions for Mapping Extensions");
+    log(INFO, "Installing Mapping Extensions Hooks!");
+
     il2cpp_functions::Init();
-    log_base("Initialized Il2Cpp Functions for Mapping Extensions");
+
+    INSTALL_HOOK_OFFSETLESS(NoteCutDirectionExtensions_Rotation, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "NoteCutDirectionExtensions"), "Rotation", 1));
+    INSTALL_HOOK_OFFSETLESS(NoteData_MirrorLineIndex, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "NoteData"), "MirrorLineIndex", 1));
+    INSTALL_HOOK_OFFSETLESS(NoteData_MirrorTransformCutDirection, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "NoteData"), "MirrorTransformCutDirection", 0));
+    INSTALL_HOOK_OFFSETLESS(ObstacleData_MirrorLineIndex, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "ObstacleData"), "MirrorLineIndex", 1));
+    INSTALL_HOOK_OFFSETLESS(FlyingScoreSpawner_SpawnFlyingScore, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "FlyingScoreSpawner"), "SpawnFlyingScore", 5));
+    INSTALL_HOOK_OFFSETLESS(BeatmapObjectSpawnController_GetNoteOffset, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "BeatmapObjectSpawnController"), "GetNoteOffset", 2));
+    INSTALL_HOOK_OFFSETLESS(BeatmapDataLoader_GetBeatmapDataFromBeatmapSaveData, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "BeatmapDataLoader"), "GetBeatmapDataFromBeatmapSaveData", 6));
+    INSTALL_HOOK_OFFSETLESS(BeatmapObjectSpawnController_JumpGravityForLineLayer, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "BeatmapObjectSpawnController"), "JumpGravityForLineLayer", 2));
+    INSTALL_HOOK_OFFSETLESS(BeatDataMirrorTransform_CreateTransformedData, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "BeatDataMirrorTransform"), "CreateTransformedData", 1));
+    INSTALL_HOOK_OFFSETLESS(BeatmapDataNoArrowsTransform_CreateTransformedData, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "BeatmapDataNoArrowsTransform"), "CreateTransformedData", 2));
+    INSTALL_HOOK_OFFSETLESS(BeatmapDataObstaclesAndBombsTransform_CreateTransformedData, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "BeatmapDataObstaclesAndBombsTransform"), "CreateTransformedData", 3));
+    INSTALL_HOOK_OFFSETLESS(ObstacleController_Init, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "ObstacleController"), "Init", 9));
+    INSTALL_HOOK_OFFSETLESS(ColorManager_SetColorScheme, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "ColorManager"), "SetColorScheme", 1));
+    INSTALL_HOOK_OFFSETLESS(StandardLevelDetailView_RefreshContent, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "StandardLevelDetailView"), "RefreshContent", 0));
+    INSTALL_HOOK_OFFSETLESS(BeatmapObjectSpawnController_Init, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "BeatmapObjectSpawnController"), "Init", 6));
+    INSTALL_HOOK_OFFSETLESS(BeatmapObjectExecutionRatingsRecorder_HandleBeatmapObjectSpawnControllerObstacleDidPassAvoidedMark, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "BeatmapObjectExecutionRatingsRecorder"), "HandleBeatmapObjectSpawnControllerObstacleDidPassAvoidedMark", 2));
+
+    log(INFO, "Installed  Mapping Extensions Hooks!");
 }
