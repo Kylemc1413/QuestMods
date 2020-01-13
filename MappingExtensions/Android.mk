@@ -30,11 +30,14 @@ LOCAL_MODULE := hook
 #LOCAL_SRC_FILES := $(LOCAL_PATH)/../obj/local/armeabi-v7a/libhook.a
 #LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../include
 include $(CLEAR_VARS)
+
+rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 LOCAL_LDLIBS := -llog
-LOCAL_CFLAGS    := -DMOD_ID='"MappingExtensions"' -DVERSION='"0.15.0"'
+LOCAL_CFLAGS    := -D"MOD_ID=\"MappingExtensions\"" -D"VERSION=\"0.16.0\"" -I"D:\Development\Unity\Editor\Data\il2cpp\libil2cpp" #Path to libil2cpp
 LOCAL_MODULE    := mappingextensions
 LOCAL_CPPFLAGS := -std=c++2a 
 #LOCAL_SHARED_LIBRARIES := testil2cpp
-LOCAL_SRC_FILES := ../beatsaber-hook/shared/inline-hook/And64InlineHook.cpp ../beatsaber-hook/shared/utils/il2cpp-utils.cpp ../beatsaber-hook/shared/utils/il2cpp-functions.cpp ../beatsaber-hook/shared/utils/utils.cpp main.cpp ../beatsaber-hook/shared/inline-hook/inlineHook.c ../beatsaber-hook/shared/inline-hook/relocate.c
+LOCAL_C_INCLUDES := ../beatsaber-hook/shared/
+LOCAL_SRC_FILES := $(call rwildcard, ../beatsaber-hook/shared/inline-hook/,*.cpp) $(call rwildcard, ../beatsaber-hook/shared/utils/,*.cpp) $(call rwildcard, ../beatsaber-hook/shared/config/,*.cpp)  $(call rwildcard, ../beatsaber-hook/shared/customui,*.cpp) $(call rwildcard, ../beatsaber-hook/shared/inline-hook/,*.c) $(call rwildcard,./src,*.cpp)
 #LOCAL_STATIC_LIBRARIES := libhook
 include $(BUILD_SHARED_LIBRARY)
