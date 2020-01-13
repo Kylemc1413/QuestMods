@@ -227,13 +227,14 @@ struct BeatmapObjectSpawnController : UnityObject
     float topLinesYPos;
     float verticleObstaclePosY;
     float topObstaclePosY;
+    float verticalObstacleHeight;
+    float topObstacleHeight;
     void *initData;
     void *beatmapObjectCallbackController;
     void *noteAPool;
     void *noteBPool;
     void *bombNotePool;
-    void *fullHeightObstaclePool;
-    void *topObstaclePool;
+    void *obstaclePool;
     void *noteLineConnectionPool;
     void *beatmapObjectWasSpawnedEvent;
     void *noteWasMissedEvent;
@@ -248,8 +249,7 @@ struct BeatmapObjectSpawnController : UnityObject
     float moveDistance;
     bool disableSpawning;
     int beatmapObjectCallbackId;
-    int lateEventCallbackId;
-    int earlyEventCallbackId;
+    int eventCallbackId;
     float beatsPerMinute;
     float noteLinesCount;
     float noteJumpMovementSpeed;
@@ -259,6 +259,7 @@ struct BeatmapObjectSpawnController : UnityObject
     int numberOfSpawnedBasicNotes;
     float firstBasicNoteTime;
     void *spawnRotationProcessor;
+    void *beatmapCallbackItemDataList;
 };
 
 Quaternion ToQuaternion(float pitch, float yaw, float roll) // yaw (Z), pitch (Y), roll (X)
