@@ -1,7 +1,5 @@
-#include <android/log.h>
 #include <stdlib.h>
 #include <time.h>
-#include <stdalign.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <math.h>
@@ -9,26 +7,8 @@
 #include <vector>
 #include <limits>
 #include <map>
-#include "../beatsaber-hook/shared/utils/logging.h"
-#include "../beatsaber-hook/shared/inline-hook/inlineHook.h"
 #include "../beatsaber-hook/shared/utils/utils.h"
-#include "../beatsaber-hook/shared/utils/typedefs.h"
-//#undef log
-//#define log2(INFO,...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[CustomSabers v0.0.1] " __VA_ARGS__)
-#undef log2
-#define log2(...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[CustomSaber v0.0.1] " __VA_ARGS__)
 
-//Hook offsets
-#define set_active_scene_offset 0x10E3A3C
-#define gameplay_core_scene_setup_start_offset 0xA5875C
-#define saber_start_offset 0xA05A78
-#define tutorial_controller_awake_offset 0xB2F4C8
-#define MOD_ID "CustomSabers"
-#define VERSION "0.0.1"
-using il2cpp_utils::createcsstr;
-using il2cpp_utils::GetClassFromName;
-using il2cpp_utils::New;
-using namespace il2cpp_functions;
 template <class T>
 struct List : Il2CppObject
 {
@@ -164,341 +144,337 @@ static const MethodInfo *shaderPropertyToID;
 static const MethodInfo *addSpawnControllerNoteWasCut;
 static void *asyncBundle;
 void GrabMethods();
-MAKE_HOOK(set_active_scene, set_active_scene_offset, bool, int scene)
+MAKE_HOOK_OFFSETLESS(SceneManager_SetActiveScene, bool, int scene)
 {
-    log2("Called set_active_scene hook");
-    bool result = set_active_scene(scene);
+    log(INFO, "Called SceneManager_SetActiveScene hook");
+    bool result = SceneManager_SetActiveScene(scene);
 
     if (sceneClass == nullptr)
-        sceneClass = GetClassFromName("UnityEngine.SceneManagement", "Scene");
+        sceneClass = il2cpp_utils::GetClassFromName("UnityEngine.SceneManagement", "Scene");
     //Get scene name method
     if (sceneNameMethodInfo == nullptr)
-        sceneNameMethodInfo = class_get_method_from_name(sceneClass, "GetNameInternal", 1);
+        sceneNameMethodInfo = il2cpp_functions::class_get_method_from_name(sceneClass, "GetNameInternal", 1);
 
     //Get Scene Name
 
     Il2CppException *exception = nullptr;
     void *sceneNameparams[] = {&scene};
-    auto nameResult = runtime_invoke(sceneNameMethodInfo, nullptr, sceneNameparams, &exception);
+    auto nameResult = il2cpp_functions::runtime_invoke(sceneNameMethodInfo, nullptr, sceneNameparams, &exception);
     Il2CppString *csName = reinterpret_cast<Il2CppString *>(nameResult);
     auto sceneName = to_utf8(csstrtostr(csName)).c_str();
 
     //Code to run if menuCore
     if (std::strncmp(sceneName, "MenuCore", 8) == 0)
     {
-        log2("MenuCore Scene");
+        log(INFO, "MenuCore Scene");
     }
-    log2("End set_active_scene hook");
     return result;
 }
 
 void *customSaberAssetBundle;
 void *customSaberGameObject;
 
-MAKE_HOOK(gameplay_core_scene_setup_start, gameplay_core_scene_setup_start_offset, void, void *self)
+MAKE_HOOK_OFFSETLESS(GameplayCoreSceneSetup_Start, void, void *self)
 {
-    log2("Called gameplay_core_scene_setup_start hook");
-    gameplay_core_scene_setup_start(self);
+    log(INFO, "Called GameplayCoreSceneSetup_Start hook");
+    GameplayCoreSceneSetup_Start(self);
 
     GrabMethods();
     if (asyncBundle == nullptr)
     {
         Il2CppException *exception;
-        Il2CppString *assetFilePath = createcsstr("/sdcard/Android/data/com.beatgames.beatsaber/files/sabers/testSaber.qsaber");
+        Il2CppString *assetFilePath = il2cpp_utils::createcsstr("/sdcard/Android/data/com.beatgames.beatsaber/files/sabers/testSaber.qsaber");
         void *fromFileParams[] = {assetFilePath};
-        asyncBundle = runtime_invoke(assetBundleFromFileAsync, nullptr, fromFileParams, &exception);
+        asyncBundle = il2cpp_functions::runtime_invoke(assetBundleFromFileAsync, nullptr, fromFileParams, &exception);
         bool sceneActivationValue = true;
         void *setSceneActivationParams[] = {&sceneActivationValue};
-        runtime_invoke(asyncOperationSetAllowSceneActivation, asyncBundle, setSceneActivationParams, &exception);
-        log2("Loaded Async Bundle");
+        il2cpp_functions::runtime_invoke(asyncOperationSetAllowSceneActivation, asyncBundle, setSceneActivationParams, &exception);
+        log(INFO, "Loaded Async Bundle");
     }
     customSaberGameObject = nullptr;
 }
-MAKE_HOOK(tutorial_controller_awake, tutorial_controller_awake_offset, void, void *self)
+MAKE_HOOK_OFFSETLESS(TutorialController_Awake, void, void *self)
 {
-    log2("Called tutorial_controller_awake hook");
-    tutorial_controller_awake(self);
+    log(INFO, "Called TutorialController_Awake hook");
+    TutorialController_Awake(self);
     GrabMethods();
     if (asyncBundle == nullptr)
     {
         Il2CppException *exception;
-        Il2CppString *assetFilePath = createcsstr("/sdcard/Android/data/com.beatgames.beatsaber/files/sabers/testSaber.qsaber");
+        Il2CppString *assetFilePath = il2cpp_utils::createcsstr("/sdcard/Android/data/com.beatgames.beatsaber/files/sabers/testSaber.qsaber");
         void *fromFileParams[] = {assetFilePath};
-        asyncBundle = runtime_invoke(assetBundleFromFileAsync, nullptr, fromFileParams, &exception);
+        asyncBundle = il2cpp_functions::runtime_invoke(assetBundleFromFileAsync, nullptr, fromFileParams, &exception);
         bool sceneActivationValue = true;
         void *setSceneActivationParams[] = {&sceneActivationValue};
-        runtime_invoke(asyncOperationSetAllowSceneActivation, asyncBundle, setSceneActivationParams, &exception);
-        log2("Loaded Async Bundle");
+        il2cpp_functions::runtime_invoke(asyncOperationSetAllowSceneActivation, asyncBundle, setSceneActivationParams, &exception);
+        log(INFO, "Loaded Async Bundle");
     }
     customSaberGameObject = nullptr;
 }
 void ReplaceSaber(void *, void *);
-MAKE_HOOK(saber_start, saber_start_offset, void, void *self)
+MAKE_HOOK_OFFSETLESS(Saber_Start, void, void *self)
 {
-    saber_start(self);
-    log2("Called saber_start hook");
+    Saber_Start(self);
+    log(INFO, "Called Saber_Start hook");
     //Load Custom Saber Objects if not loaded
     Il2CppException *exception = nullptr;
     if (customSaberAssetBundle == nullptr)
     {
-        customSaberAssetBundle = runtime_invoke(assetBundleFromAsync, asyncBundle, nullptr, &exception);
-        log2("Grabbed Asset bundle");
+        customSaberAssetBundle = il2cpp_functions::runtime_invoke(assetBundleFromAsync, asyncBundle, nullptr, &exception);
+        log(INFO, "Grabbed Asset bundle");
         asyncBundle = nullptr;
     }
     if (customSaberGameObject == nullptr && customSaberAssetBundle != nullptr)
     {
-        Il2CppString *assetPath = createcsstr("_customsaber");
-        void *assetPathParams[] = {assetPath, type_get_object(class_get_type(gameObjectClass))};
-        void *assetAsync = runtime_invoke(loadAssetAsync, customSaberAssetBundle, assetPathParams, &exception);
+        Il2CppString *assetPath = il2cpp_utils::createcsstr("_customsaber");
+        void *assetPathParams[] = {assetPath, il2cpp_functions::type_get_object(il2cpp_functions::class_get_type(gameObjectClass))};
+        void *assetAsync = il2cpp_functions::runtime_invoke(loadAssetAsync, customSaberAssetBundle, assetPathParams, &exception);
         if (exception != nullptr)
         {
-            const MethodInfo *exceptionToString = class_get_method_from_name(exception->klass, "ToString", 0);
-            void *exceptionString = runtime_invoke(exceptionToString, exception, nullptr, &exception);
+            const MethodInfo *exceptionToString = il2cpp_functions::class_get_method_from_name(exception->klass, "ToString", 0);
+            void *exceptionString = il2cpp_functions::runtime_invoke(exceptionToString, exception, nullptr, &exception);
             Il2CppString *message = reinterpret_cast<Il2CppString *>(exceptionString);
-            log2("Exception: %s", to_utf8(csstrtostr(message)).c_str());
+            log(INFO, "Exception: %s", to_utf8(csstrtostr(message)).c_str());
         }
-        log2("Grabbed Asset Async Request");
+        log(INFO, "Grabbed Asset Async Request");
 
-        void *customSaberObject = runtime_invoke(getAsset, assetAsync, nullptr, &exception);
+        void *customSaberObject = il2cpp_functions::runtime_invoke(getAsset, assetAsync, nullptr, &exception);
         if (exception != nullptr)
         {
-            const MethodInfo *exceptionToString = class_get_method_from_name(exception->klass, "ToString", 0);
-            void *exceptionString = runtime_invoke(exceptionToString, exception, nullptr, &exception);
+            const MethodInfo *exceptionToString = il2cpp_functions::class_get_method_from_name(exception->klass, "ToString", 0);
+            void *exceptionString = il2cpp_functions::runtime_invoke(exceptionToString, exception, nullptr, &exception);
             Il2CppString *message = reinterpret_cast<Il2CppString *>(exceptionString);
-            log2("Exception: %s", to_utf8(csstrtostr(message)).c_str());
+            log(INFO, "Exception: %s", to_utf8(csstrtostr(message)).c_str());
         }
-        log2("Grabbed Asset Object");
+        log(INFO, "Grabbed Asset Object");
 
         //Attempt to Instaniate GameObject
         void *instantiateParams[] = {customSaberObject};
-        customSaberGameObject = runtime_invoke(objectInstantiate, nullptr, instantiateParams, &exception);
-        log2("Instantiated Asset Object");
-		log2("Pointer?%p", customSaberGameObject);
+        customSaberGameObject = il2cpp_functions::runtime_invoke(objectInstantiate, nullptr, instantiateParams, &exception);
+        log(INFO, "Instantiated Asset Object");
+		log(INFO, "Pointer?%p", customSaberGameObject);
     }
 
     if (customSaberGameObject != nullptr)
     {
-        log2("Replacing Saber with Custom Saber");
+        log(INFO, "Replacing Saber with Custom Saber");
         ReplaceSaber(self, customSaberGameObject);
     }
 }
-__attribute__((constructor)) void lib_main()
+extern "C" void load()
 {
-
-    log2("Installing Custom Sabers Hooks!");
-    INSTALL_HOOK(set_active_scene);
-    INSTALL_HOOK(gameplay_core_scene_setup_start);
-    INSTALL_HOOK(saber_start);
-    INSTALL_HOOK(tutorial_controller_awake);
-    log2("Installed Custom Sabers Hooks!");
-    log2("Initializing il2cpp api functions for Custom Sabers.");
-    Init();
-    log2("Initialized il2cpp api functions for Custom Sabers.");
+    il2cpp_functions::Init();
+    log(INFO, "Installing Custom Sabers Hooks!");
+    INSTALL_HOOK_OFFSETLESS(SceneManager_SetActiveScene, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("UnityEngine.SceneManagement", "SceneManager"), "SetActiveScene", 1));
+    INSTALL_HOOK_OFFSETLESS(GameplayCoreSceneSetup_Start, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "GameplayCoreSceneSetup"), "Start", 0));
+    INSTALL_HOOK_OFFSETLESS(TutorialController_Awake, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "TutorialController"), "Awake", 0));
+    INSTALL_HOOK_OFFSETLESS(Saber_Start, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "Saber"), "Start", 0));
+    log(INFO, "Installed Custom Sabers Hooks!");
 }
 
 void GrabMethods()
 {
     if (assetBundleClass == nullptr)
-        assetBundleClass = GetClassFromName("UnityEngine", "AssetBundle");
+        assetBundleClass = il2cpp_utils::GetClassFromName("UnityEngine", "AssetBundle");
     if (assetBundleCreateRequestClass == nullptr)
-        assetBundleCreateRequestClass = GetClassFromName("UnityEngine", "AssetBundleCreateRequest");
+        assetBundleCreateRequestClass = il2cpp_utils::GetClassFromName("UnityEngine", "AssetBundleCreateRequest");
     if (assetBundleRequestClass == nullptr)
-        assetBundleRequestClass = GetClassFromName("UnityEngine", "AssetBundleRequest");
+        assetBundleRequestClass = il2cpp_utils::GetClassFromName("UnityEngine", "AssetBundleRequest");
     if (gameObjectClass == nullptr)
-        gameObjectClass = GetClassFromName("UnityEngine", "GameObject");
+        gameObjectClass = il2cpp_utils::GetClassFromName("UnityEngine", "GameObject");
     if (objectClass == nullptr)
-        objectClass = GetClassFromName("UnityEngine", "Object");
+        objectClass = il2cpp_utils::GetClassFromName("UnityEngine", "Object");
     if (transformClass == nullptr)
-        transformClass = GetClassFromName("UnityEngine", "Transform");
+        transformClass = il2cpp_utils::GetClassFromName("UnityEngine", "Transform");
     if (asyncOperationClass == nullptr)
-        asyncOperationClass = GetClassFromName("UnityEngine", "AsyncOperation");
+        asyncOperationClass = il2cpp_utils::GetClassFromName("UnityEngine", "AsyncOperation");
     if (saberClass == nullptr)
-        saberClass = GetClassFromName("", "Saber");
+        saberClass = il2cpp_utils::GetClassFromName("", "Saber");
     if (componentClass == nullptr)
-        componentClass = GetClassFromName("UnityEngine", "Component");
+        componentClass = il2cpp_utils::GetClassFromName("UnityEngine", "Component");
     if (meshFilterClass == nullptr)
-        meshFilterClass = GetClassFromName("UnityEngine", "MeshFilter");
+        meshFilterClass = il2cpp_utils::GetClassFromName("UnityEngine", "MeshFilter");
     if (resourcesClass == nullptr)
-        resourcesClass = GetClassFromName("UnityEngine", "Resources");
+        resourcesClass = il2cpp_utils::GetClassFromName("UnityEngine", "Resources");
     if (colorManagerClass == nullptr)
-        colorManagerClass = GetClassFromName("", "ColorManager");
+        colorManagerClass = il2cpp_utils::GetClassFromName("", "ColorManager");
     if (rendererClass == nullptr)
-        rendererClass = GetClassFromName("UnityEngine", "Renderer");
+        rendererClass = il2cpp_utils::GetClassFromName("UnityEngine", "Renderer");
     if (materialClass == nullptr)
-        materialClass = GetClassFromName("UnityEngine", "Material");
+        materialClass = il2cpp_utils::GetClassFromName("UnityEngine", "Material");
     if (shaderClass == nullptr)
-        shaderClass = GetClassFromName("UnityEngine", "Shader");
+        shaderClass = il2cpp_utils::GetClassFromName("UnityEngine", "Shader");
     if (beatmapObjectSpawnControllerClass == nullptr)
-        beatmapObjectSpawnControllerClass = GetClassFromName("", "BeatmapObjectSpawnController");
+        beatmapObjectSpawnControllerClass = il2cpp_utils::GetClassFromName("", "BeatmapObjectSpawnController");
     if (actionThree == nullptr)
-        actionThree = GetClassFromName("System", "Action`3");
+        actionThree = il2cpp_utils::GetClassFromName("System", "Action`3");
 
     if (assetBundleFromFileAsync == nullptr)
-        assetBundleFromFileAsync = class_get_method_from_name(assetBundleClass, "LoadFromFileAsync", 1);
+        assetBundleFromFileAsync = il2cpp_functions::class_get_method_from_name(assetBundleClass, "LoadFromFileAsync", 1);
     if (assetBundleFromAsync == nullptr)
-        assetBundleFromAsync = class_get_method_from_name(assetBundleCreateRequestClass, "get_assetBundle", 0);
+        assetBundleFromAsync = il2cpp_functions::class_get_method_from_name(assetBundleCreateRequestClass, "get_assetBundle", 0);
     if (loadAssetAsync == nullptr)
-        loadAssetAsync = class_get_method_from_name(assetBundleClass, "LoadAssetAsync", 2);
+        loadAssetAsync = il2cpp_functions::class_get_method_from_name(assetBundleClass, "LoadAssetAsync", 2);
     if (getAsset == nullptr)
-        getAsset = class_get_method_from_name(assetBundleRequestClass, "get_asset", 0);
+        getAsset = il2cpp_functions::class_get_method_from_name(assetBundleRequestClass, "get_asset", 0);
     if (objectInstantiate == nullptr)
-        objectInstantiate = class_get_method_from_name(objectClass, "Instantiate", 1);
+        objectInstantiate = il2cpp_functions::class_get_method_from_name(objectClass, "Instantiate", 1);
 
     if (findGameObject == nullptr)
-        findGameObject = class_get_method_from_name(gameObjectClass, "Find", 1);
+        findGameObject = il2cpp_functions::class_get_method_from_name(gameObjectClass, "Find", 1);
     if (getGameObjectTransform == nullptr)
-        getGameObjectTransform = class_get_method_from_name(gameObjectClass, "get_transform", 0);
+        getGameObjectTransform = il2cpp_functions::class_get_method_from_name(gameObjectClass, "get_transform", 0);
     if (gameObjectSetActive == nullptr)
-        gameObjectSetActive = class_get_method_from_name(gameObjectClass, "SetActive", 1);
+        gameObjectSetActive = il2cpp_functions::class_get_method_from_name(gameObjectClass, "SetActive", 1);
     if (findTransform == nullptr)
-        findTransform = class_get_method_from_name(transformClass, "Find", 1);
+        findTransform = il2cpp_functions::class_get_method_from_name(transformClass, "Find", 1);
     if (transformPosGet == nullptr)
-        transformPosGet = class_get_method_from_name(transformClass, "get_position", 0);
+        transformPosGet = il2cpp_functions::class_get_method_from_name(transformClass, "get_position", 0);
     if (transformPosSet == nullptr)
-        transformPosSet = class_get_method_from_name(transformClass, "set_position", 1);
+        transformPosSet = il2cpp_functions::class_get_method_from_name(transformClass, "set_position", 1);
     if (transformLocalPosGet == nullptr)
-        transformLocalPosGet = class_get_method_from_name(transformClass, "get_localPosition", 0);
+        transformLocalPosGet = il2cpp_functions::class_get_method_from_name(transformClass, "get_localPosition", 0);
     if (transformLocalPosSet == nullptr)
-        transformLocalPosSet = class_get_method_from_name(transformClass, "set_localPosition", 1);
+        transformLocalPosSet = il2cpp_functions::class_get_method_from_name(transformClass, "set_localPosition", 1);
     if (transformRotationGet == nullptr)
-        transformRotationGet = class_get_method_from_name(transformClass, "get_rotation", 0);
+        transformRotationGet = il2cpp_functions::class_get_method_from_name(transformClass, "get_rotation", 0);
     if (transformRotationSet == nullptr)
-        transformRotationSet = class_get_method_from_name(transformClass, "set_rotation", 1);
+        transformRotationSet = il2cpp_functions::class_get_method_from_name(transformClass, "set_rotation", 1);
     if (transformLocalEulerGet == nullptr)
-        transformLocalEulerGet = class_get_method_from_name(transformClass, "get_localEulerAngles", 0);
+        transformLocalEulerGet = il2cpp_functions::class_get_method_from_name(transformClass, "get_localEulerAngles", 0);
     if (transformLocalEulerSet == nullptr)
-        transformLocalEulerSet = class_get_method_from_name(transformClass, "set_localEulerAngles", 1);
+        transformLocalEulerSet = il2cpp_functions::class_get_method_from_name(transformClass, "set_localEulerAngles", 1);
     if (transformParentGet == nullptr)
-        transformParentGet = class_get_method_from_name(transformClass, "get_parent", 0);
+        transformParentGet = il2cpp_functions::class_get_method_from_name(transformClass, "get_parent", 0);
     if (transformParentSet == nullptr)
-        transformParentSet = class_get_method_from_name(transformClass, "set_parent", 1);
+        transformParentSet = il2cpp_functions::class_get_method_from_name(transformClass, "set_parent", 1);
 
     if (asyncOperationSetAllowSceneActivation == nullptr)
-        asyncOperationSetAllowSceneActivation = class_get_method_from_name(asyncOperationClass, "set_allowSceneActivation", 1);
+        asyncOperationSetAllowSceneActivation = il2cpp_functions::class_get_method_from_name(asyncOperationClass, "set_allowSceneActivation", 1);
     if (asyncOperationGetIsDone == nullptr)
-        asyncOperationGetIsDone = class_get_method_from_name(asyncOperationClass, "get_isDone", 0);
+        asyncOperationGetIsDone = il2cpp_functions::class_get_method_from_name(asyncOperationClass, "get_isDone", 0);
 
     if (saberTypeGet == nullptr)
-        saberTypeGet = class_get_method_from_name(saberClass, "get_saberType", 0);
+        saberTypeGet = il2cpp_functions::class_get_method_from_name(saberClass, "get_saberType", 0);
 
     if (componentGetGameObject == nullptr)
-        componentGetGameObject = class_get_method_from_name(componentClass, "get_gameObject", 0);
+        componentGetGameObject = il2cpp_functions::class_get_method_from_name(componentClass, "get_gameObject", 0);
     if (componentGetComponentsInChildren == nullptr)
-        componentGetComponentsInChildren = class_get_method_from_name(componentClass, "GetComponentsInChildren", 2);
+        componentGetComponentsInChildren = il2cpp_functions::class_get_method_from_name(componentClass, "GetComponentsInChildren", 2);
     if (resourcesFindObjectsOfTypeAll == nullptr)
-        resourcesFindObjectsOfTypeAll = class_get_method_from_name(resourcesClass, "FindObjectsOfTypeAll", 1);
+        resourcesFindObjectsOfTypeAll = il2cpp_functions::class_get_method_from_name(resourcesClass, "FindObjectsOfTypeAll", 1);
 
     if (materialGetFloat == nullptr)
-        materialGetFloat = class_get_method_from_name(materialClass, "GetFloat", 1);
+        materialGetFloat = il2cpp_functions::class_get_method_from_name(materialClass, "GetFloat", 1);
     if (materialHasProperty == nullptr)
-        materialHasProperty = class_get_method_from_name(materialClass, "HasProperty", 1);
+        materialHasProperty = il2cpp_functions::class_get_method_from_name(materialClass, "HasProperty", 1);
     if (materialSetColor == nullptr)
-        materialSetColor = class_get_method_from_name(materialClass, "SetColor", 2);
+        materialSetColor = il2cpp_functions::class_get_method_from_name(materialClass, "SetColor", 2);
     if (rendererGetSharedMaterials == nullptr)
-        rendererGetSharedMaterials = class_get_method_from_name(rendererClass, "get_sharedMaterials", 0);
+        rendererGetSharedMaterials = il2cpp_functions::class_get_method_from_name(rendererClass, "get_sharedMaterials", 0);
     if (shaderPropertyToID == nullptr)
-        shaderPropertyToID = class_get_method_from_name(shaderClass, "PropertyToID", 1);
+        shaderPropertyToID = il2cpp_functions::class_get_method_from_name(shaderClass, "PropertyToID", 1);
 
     if (colorManagerColorForSaberType == nullptr)
-        colorManagerColorForSaberType = class_get_method_from_name(colorManagerClass, "ColorForSaberType", 1);
+        colorManagerColorForSaberType = il2cpp_functions::class_get_method_from_name(colorManagerClass, "ColorForSaberType", 1);
     if (addSpawnControllerNoteWasCut == nullptr)
-        addSpawnControllerNoteWasCut = class_get_method_from_name(beatmapObjectSpawnControllerClass, "add_noteWasCutEvent", 1);
+        addSpawnControllerNoteWasCut = il2cpp_functions::class_get_method_from_name(beatmapObjectSpawnControllerClass, "add_noteWasCutEvent", 1);
 }
 void *GetFirstObjectOfType(Il2CppClass *);
 void SpawnControllerNoteWasCut(void *BeatmapObjectSpawnController, void *NoteController, void *NoteCutInfo);
 void ReplaceSaber(void *saber, void *customSaberObject)
 {
     Il2CppException *exception;
-    void *saberGameObject = runtime_invoke(componentGetGameObject, saber, nullptr, &exception);
-    void *customSaberGameObjectTransform = runtime_invoke(getGameObjectTransform, customSaberGameObject, nullptr, &exception);
-    int saberType = *(reinterpret_cast<int *>(object_unbox(runtime_invoke(saberTypeGet, saber, nullptr, &exception))));
-    Il2CppString *saberName = createcsstr((saberType == 0 ? "LeftSaber" : "RightSaber"));
+    void *saberGameObject = il2cpp_functions::runtime_invoke(componentGetGameObject, saber, nullptr, &exception);
+    void *customSaberGameObjectTransform = il2cpp_functions::runtime_invoke(getGameObjectTransform, customSaberGameObject, nullptr, &exception);
+    int saberType = *(reinterpret_cast<int *>(il2cpp_functions::il2cpp_functions::object_unbox(il2cpp_functions::runtime_invoke(saberTypeGet, saber, nullptr, &exception))));
+    Il2CppString *saberName = il2cpp_utils::createcsstr((saberType == 0 ? "LeftSaber" : "RightSaber"));
     void *saberChildParams[] = {saberName};
-    void *childTransform = runtime_invoke(findTransform, customSaberGameObjectTransform, saberChildParams, &exception);
-    void *parentSaberTransform = runtime_invoke(getGameObjectTransform, saberGameObject, nullptr, &exception);
-    void *parentPos = object_unbox(runtime_invoke(transformPosGet, parentSaberTransform, nullptr, &exception));
-    void *parentRot = object_unbox(runtime_invoke(transformRotationGet, parentSaberTransform, nullptr, &exception));
+    void *childTransform = il2cpp_functions::runtime_invoke(findTransform, customSaberGameObjectTransform, saberChildParams, &exception);
+    void *parentSaberTransform = il2cpp_functions::runtime_invoke(getGameObjectTransform, saberGameObject, nullptr, &exception);
+    void *parentPos = il2cpp_functions::object_unbox(il2cpp_functions::runtime_invoke(transformPosGet, parentSaberTransform, nullptr, &exception));
+    void *parentRot = il2cpp_functions::object_unbox(il2cpp_functions::runtime_invoke(transformRotationGet, parentSaberTransform, nullptr, &exception));
     bool getInactive = false;
-    void *getMeshFiltersParams[] = {type_get_object(class_get_type(meshFilterClass)), &getInactive};
-    Array<void *> *meshfilters = reinterpret_cast<Array<void *> *>(runtime_invoke(componentGetComponentsInChildren, parentSaberTransform, getMeshFiltersParams, &exception));
+    void *getMeshFiltersParams[] = {il2cpp_functions::type_get_object(il2cpp_functions::class_get_type(meshFilterClass)), &getInactive};
+    Array<void *> *meshfilters = reinterpret_cast<Array<void *> *>(il2cpp_functions::runtime_invoke(componentGetComponentsInChildren, parentSaberTransform, getMeshFiltersParams, &exception));
     for (int i = 0; i < meshfilters->Length(); i++)
     {
-        void *filterObject = runtime_invoke(componentGetGameObject, meshfilters->values[i], nullptr, &exception);
+        void *filterObject = il2cpp_functions::runtime_invoke(componentGetGameObject, meshfilters->values[i], nullptr, &exception);
         void *disableParam[] = {&getInactive};
-        runtime_invoke(gameObjectSetActive, filterObject, disableParam, &exception);
+        il2cpp_functions::runtime_invoke(gameObjectSetActive, filterObject, disableParam, &exception);
     }
-    log2("Disabled Original Saber Meshes");
+    log(INFO, "Disabled Original Saber Meshes");
 
-    runtime_invoke(transformParentSet, childTransform, &parentSaberTransform, &exception);
-    runtime_invoke(transformPosSet, childTransform, &parentPos, &exception);
-    runtime_invoke(transformRotationSet, childTransform, &parentRot, &exception);
-    log2("Placed Custom Saber");
-    log2("Attempting to set colors of Custom Saber to colorManager Colors");
+    il2cpp_functions::runtime_invoke(transformParentSet, childTransform, &parentSaberTransform, &exception);
+    il2cpp_functions::runtime_invoke(transformPosSet, childTransform, &parentPos, &exception);
+    il2cpp_functions::runtime_invoke(transformRotationSet, childTransform, &parentRot, &exception);
+    log(INFO, "Placed Custom Saber");
+    log(INFO, "Attempting to set colors of Custom Saber to colorManager Colors");
     void *colorManager = GetFirstObjectOfType(colorManagerClass);
     if (colorManager != nullptr)
     {
         void *colorForSaberTypeParams[] = {&saberType};
-        Color colorForType = *(reinterpret_cast<Color *>(object_unbox(runtime_invoke(colorManagerColorForSaberType, colorManager, colorForSaberTypeParams, &exception))));
-        void *getRendererParams[] = {type_get_object(class_get_type(rendererClass)), &getInactive};
-        Array<void *> *renderers = reinterpret_cast<Array<void *> *>(runtime_invoke(componentGetComponentsInChildren, childTransform, getRendererParams, &exception));
+        Color colorForType = *(reinterpret_cast<Color *>(il2cpp_functions::object_unbox(il2cpp_functions::runtime_invoke(colorManagerColorForSaberType, colorManager, colorForSaberTypeParams, &exception))));
+        void *getRendererParams[] = {il2cpp_functions::type_get_object(il2cpp_functions::class_get_type(rendererClass)), &getInactive};
+        Array<void *> *renderers = reinterpret_cast<Array<void *> *>(il2cpp_functions::runtime_invoke(componentGetComponentsInChildren, childTransform, getRendererParams, &exception));
         for (int i = 0; i < renderers->Length(); ++i)
         {
-            Array<void *> *sharedMaterials = reinterpret_cast<Array<void *> *>(runtime_invoke(rendererGetSharedMaterials, renderers->values[i], nullptr, &exception));
+            Array<void *> *sharedMaterials = reinterpret_cast<Array<void *> *>(il2cpp_functions::runtime_invoke(rendererGetSharedMaterials, renderers->values[i], nullptr, &exception));
             for (int j = 0; j < sharedMaterials->Length(); ++j)
             {
-                Il2CppString *glowString = createcsstr("_Glow");
-                Il2CppString *bloomString = createcsstr("_Bloom");
-                Il2CppString *materialColor = createcsstr("_Color");
+                Il2CppString *glowString = il2cpp_utils::createcsstr("_Glow");
+                Il2CppString *bloomString = il2cpp_utils::createcsstr("_Bloom");
+                Il2CppString *materialColor = il2cpp_utils::createcsstr("_Color");
                 void *glowStringParams[] = {glowString};
                 void *bloomStringParams[] = {bloomString};
-                int glowInt = *(reinterpret_cast<int *>(object_unbox(runtime_invoke(shaderPropertyToID, nullptr, glowStringParams, &exception))));
-                int bloomInt = *(reinterpret_cast<int *>(object_unbox(runtime_invoke(shaderPropertyToID, nullptr, bloomStringParams, &exception))));
+                int glowInt = *(reinterpret_cast<int *>(il2cpp_functions::object_unbox(il2cpp_functions::runtime_invoke(shaderPropertyToID, nullptr, glowStringParams, &exception))));
+                int bloomInt = *(reinterpret_cast<int *>(il2cpp_functions::object_unbox(il2cpp_functions::runtime_invoke(shaderPropertyToID, nullptr, bloomStringParams, &exception))));
                 void *glowIntParams[] = {&glowInt};
                 void *bloomIntParams[] = {&bloomInt};
                 void *materialColorParams[] = {materialColor, &colorForType};
                 bool setColor = false;
-                bool hasGlow = runtime_invoke(materialHasProperty, sharedMaterials->values[j], glowIntParams, &exception);
+                bool hasGlow = il2cpp_functions::runtime_invoke(materialHasProperty, sharedMaterials->values[j], glowIntParams, &exception);
                 if (hasGlow)
                 {
-                    float glowFloat = *(reinterpret_cast<float *>(object_unbox(runtime_invoke(materialGetFloat, sharedMaterials->values[j], glowIntParams, &exception))));
+                    float glowFloat = *(reinterpret_cast<float *>(il2cpp_functions::object_unbox(il2cpp_functions::runtime_invoke(materialGetFloat, sharedMaterials->values[j], glowIntParams, &exception))));
                     if (glowFloat > 0)
                         setColor = true;
                 }
                 if (!setColor)
                 {
-                    bool hasBloom = runtime_invoke(materialHasProperty, sharedMaterials->values[j], bloomIntParams, &exception);
+                    bool hasBloom = il2cpp_functions::runtime_invoke(materialHasProperty, sharedMaterials->values[j], bloomIntParams, &exception);
                     if (hasBloom)
                     {
-                        float bloomFloat = *(reinterpret_cast<float *>(object_unbox(runtime_invoke(materialGetFloat, sharedMaterials->values[j], bloomIntParams, &exception))));
+                        float bloomFloat = *(reinterpret_cast<float *>(il2cpp_functions::object_unbox(il2cpp_functions::runtime_invoke(materialGetFloat, sharedMaterials->values[j], bloomIntParams, &exception))));
                         if (bloomFloat > 0)
                             setColor = true;
                     }
                 }
                 if (setColor)
                 {
-                    runtime_invoke(materialSetColor, sharedMaterials->values[j], materialColorParams, &exception);
+                    il2cpp_functions::runtime_invoke(materialSetColor, sharedMaterials->values[j], materialColorParams, &exception);
                 }
             }
         }
     }
     else
     {
-        log2("null colorManager");
+        log(INFO, "null colorManager");
     }
 
-    log2("Finished With Saber");
+    log(INFO, "Finished With Saber");
 }
 
 void SpawnControllerNoteWasCut(void *BeatmapObjectSpawnController, void *NoteController, void *NoteCutInfo)
 {
-    log2("Note Was Cut Callback");
+    log(INFO, "Note Was Cut Callback");
 }
 
 void *GetFirstObjectOfType(Il2CppClass *klass)
 {
     Il2CppException *exception;
-    void *params[] = {type_get_object(class_get_type(klass))};
-    Array<void *> *objects = reinterpret_cast<Array<void *> *>(runtime_invoke(resourcesFindObjectsOfTypeAll, nullptr, params, &exception));
+    void *params[] = {il2cpp_functions::type_get_object(il2cpp_functions::class_get_type(klass))};
+    Array<void *> *objects = reinterpret_cast<Array<void *> *>(il2cpp_functions::runtime_invoke(resourcesFindObjectsOfTypeAll, nullptr, params, &exception));
     if (objects != nullptr)
     {
         return objects->values[0];
