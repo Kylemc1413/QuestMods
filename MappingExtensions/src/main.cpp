@@ -13,7 +13,7 @@
 #include "../beatsaber-hook/shared/utils/utils-functions.h"
 
 #define MOD_ID "MappingExtensions"
-#define VERSION "0.15.0"
+#define VERSION "0.16.0"
 
 using TYPEDEFS_H::Quaternion;
 
@@ -422,7 +422,7 @@ MAKE_HOOK_OFFSETLESS(StandardLevelDetailView_RefreshContent, void, void *self)
         standardLevelDetailViewClass = il2cpp_utils::GetClassFromName("", "StandardLevelDetailView");
     if (standardLevelDetailViewClass != nullptr && getDiffBeatmapInfo == nullptr)
     {
-        getDiffBeatmapInfo = il2cpp_functions::class_get_method_from_name(standardLevelDetailViewClass, "get_selectedDifficultyBeatmap", 0);
+        getDiffBeatmapInfo = il2cpp_utils::FindMethod(standardLevelDetailViewClass, "get_selectedDifficultyBeatmap", 0);
     }
     if (getDiffBeatmapInfo != nullptr)
     {
@@ -441,7 +441,7 @@ MAKE_HOOK_OFFSETLESS(BeatmapObjectSpawnController_Init, void, void *self, float 
         difficultyBeatmapClass = il2cpp_utils::GetClassFromName("", "BeatmapLevelSO/DifficultyBeatmap");
     if (difficultyBeatmapClass != nullptr && getNjsMethodInfo == nullptr)
     {
-        getNjsMethodInfo = il2cpp_functions::class_get_method_from_name(difficultyBeatmapClass, "get_noteJumpMovementSpeed", 0);
+        getNjsMethodInfo = il2cpp_utils::FindMethod(difficultyBeatmapClass, "get_noteJumpMovementSpeed", 0);
     }
     else
     {
@@ -933,7 +933,7 @@ MAKE_HOOK_OFFSETLESS(ColorManager_Start, void, Il2CppObject *self)
     if (ColorSchemeClass == nullptr)
         ColorSchemeClass = il2cpp_utils::GetClassFromName("", "ColorScheme");
     if (get_obstaclesColor == nullptr)
-        get_obstaclesColor = il2cpp_functions::class_get_method_from_name(ColorSchemeClass, "get_obstaclesColor", 0);
+        get_obstaclesColor = il2cpp_utils::FindMethod(ColorSchemeClass, "get_obstaclesColor", 0);
 
     static auto colorSchemeField= il2cpp_functions::class_get_field_from_name(il2cpp_utils::GetClassFromName("", "ColorManager"), "_colorScheme");
     void* colorScheme = il2cpp_functions::field_get_value_object(colorSchemeField, self);
@@ -946,7 +946,7 @@ void SetStrechableObstacleSize(void *object, float paramOne, float paramTwo, flo
         stretchableObstacleClass = il2cpp_utils::GetClassFromName("", "StretchableObstacle");
 
     if (SetSizeMethodInfo == nullptr)
-        SetSizeMethodInfo = il2cpp_functions::class_get_method_from_name(stretchableObstacleClass, "SetSizeAndColor", 4);
+        SetSizeMethodInfo = il2cpp_utils::FindMethod(stretchableObstacleClass, "SetSizeAndColor", 4);
 
     Il2CppException *exception = nullptr;
     float *test;
@@ -1167,40 +1167,38 @@ extern "C" void load()
 
     log(INFO, "Installing Mapping Extensions Hooks!");
 
-    il2cpp_functions::Init();
-
     //log(INFO, "Installing Mapping Extensions Hooks C");
-    INSTALL_HOOK_OFFSETLESS(NoteCutDirectionExtensions_Rotation, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "NoteCutDirectionExtensions"), "Rotation", 1));
+    INSTALL_HOOK_OFFSETLESS(NoteCutDirectionExtensions_Rotation, il2cpp_utils::FindMethod("", "NoteCutDirectionExtensions", "Rotation", 1));
         //log(INFO, "Installing Mapping Extensions Hooks C");
-    INSTALL_HOOK_OFFSETLESS(NoteData_MirrorLineIndex, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "NoteData"), "MirrorLineIndex", 1));
+    INSTALL_HOOK_OFFSETLESS(NoteData_MirrorLineIndex, il2cpp_utils::FindMethod("", "NoteData", "MirrorLineIndex", 1));
         //log(INFO, "Installing Mapping Extensions Hooks C");
-    INSTALL_HOOK_OFFSETLESS(NoteData_MirrorTransformCutDirection, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "NoteData"), "MirrorTransformCutDirection", 0));
+    INSTALL_HOOK_OFFSETLESS(NoteData_MirrorTransformCutDirection, il2cpp_utils::FindMethod("", "NoteData", "MirrorTransformCutDirection", 0));
         //log(INFO, "Installing Mapping Extensions Hooks C");
-    INSTALL_HOOK_OFFSETLESS(ObstacleData_MirrorLineIndex, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "ObstacleData"), "MirrorLineIndex", 1));
+    INSTALL_HOOK_OFFSETLESS(ObstacleData_MirrorLineIndex, il2cpp_utils::FindMethod("", "ObstacleData", "MirrorLineIndex", 1));
         //log(INFO, "Installing Mapping Extensions Hooks C");
-    INSTALL_HOOK_OFFSETLESS(FlyingScoreSpawner_SpawnFlyingScore, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "FlyingScoreSpawner"), "SpawnFlyingScore", 7));
+    INSTALL_HOOK_OFFSETLESS(FlyingScoreSpawner_SpawnFlyingScore, il2cpp_utils::FindMethod("", "FlyingScoreSpawner", "SpawnFlyingScore", 7));
         //log(INFO, "Installing Mapping Extensions Hooks C");
-    INSTALL_HOOK_OFFSETLESS(BeatmapObjectSpawnController_GetNoteOffset, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "BeatmapObjectSpawnController"), "GetNoteOffset", 2));
+    INSTALL_HOOK_OFFSETLESS(BeatmapObjectSpawnController_GetNoteOffset, il2cpp_utils::FindMethod("", "BeatmapObjectSpawnController", "GetNoteOffset", 2));
         //log(INFO, "Installing Mapping Extensions Hooks C");
-    INSTALL_HOOK_OFFSETLESS(BeatmapDataLoader_GetBeatmapDataFromBeatmapSaveData, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "BeatmapDataLoader"), "GetBeatmapDataFromBeatmapSaveData", 6));
+    INSTALL_HOOK_OFFSETLESS(BeatmapDataLoader_GetBeatmapDataFromBeatmapSaveData, il2cpp_utils::FindMethod("", "BeatmapDataLoader", "GetBeatmapDataFromBeatmapSaveData", 6));
         //log(INFO, "Installing Mapping Extensions Hooks C");
-    INSTALL_HOOK_OFFSETLESS(BeatmapObjectSpawnController_JumpGravityForLineLayer, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "BeatmapObjectSpawnController"), "JumpGravityForLineLayer", 2));
+    INSTALL_HOOK_OFFSETLESS(BeatmapObjectSpawnController_JumpGravityForLineLayer, il2cpp_utils::FindMethod("", "BeatmapObjectSpawnController", "JumpGravityForLineLayer", 2));
         //log(INFO, "Installing Mapping Extensions Hooks C");
-    INSTALL_HOOK_OFFSETLESS(BeatDataMirrorTransform_CreateTransformedData, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "BeatDataMirrorTransform"), "CreateTransformedData", 1));
+    INSTALL_HOOK_OFFSETLESS(BeatDataMirrorTransform_CreateTransformedData, il2cpp_utils::FindMethod("", "BeatDataMirrorTransform", "CreateTransformedData", 1));
         //log(INFO, "Installing Mapping Extensions Hooks C");
-    INSTALL_HOOK_OFFSETLESS(BeatmapDataNoArrowsTransform_CreateTransformedData, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "BeatmapDataNoArrowsTransform"), "CreateTransformedData", 2));
+    INSTALL_HOOK_OFFSETLESS(BeatmapDataNoArrowsTransform_CreateTransformedData, il2cpp_utils::FindMethod("", "BeatmapDataNoArrowsTransform", "CreateTransformedData", 2));
         //log(INFO, "Installing Mapping Extensions Hooks C");
-    INSTALL_HOOK_OFFSETLESS(BeatmapDataObstaclesAndBombsTransform_CreateTransformedData, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "BeatmapDataObstaclesAndBombsTransform"), "CreateTransformedData", 3));
+    INSTALL_HOOK_OFFSETLESS(BeatmapDataObstaclesAndBombsTransform_CreateTransformedData, il2cpp_utils::FindMethod("", "BeatmapDataObstaclesAndBombsTransform", "CreateTransformedData", 3));
         //log(INFO, "Installing Mapping Extensions Hooks C");
-    INSTALL_HOOK_OFFSETLESS(ObstacleController_Init, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "ObstacleController"), "Init", 10));
+    INSTALL_HOOK_OFFSETLESS(ObstacleController_Init, il2cpp_utils::FindMethod("", "ObstacleController", "Init", 10));
         //log(INFO, "Installing Mapping Extensions Hooks C");
-    INSTALL_HOOK_OFFSETLESS(ColorManager_Start, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "ColorManager"), "Start", 0));
+    INSTALL_HOOK_OFFSETLESS(ColorManager_Start, il2cpp_utils::FindMethod("", "ColorManager", "Start", 0));
        // log(INFO, "Installing Mapping Extensions Hooks C");
-    INSTALL_HOOK_OFFSETLESS(StandardLevelDetailView_RefreshContent, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "StandardLevelDetailView"), "RefreshContent", 0));
+    INSTALL_HOOK_OFFSETLESS(StandardLevelDetailView_RefreshContent, il2cpp_utils::FindMethod("", "StandardLevelDetailView", "RefreshContent", 0));
        // log(INFO, "Installing Mapping Extensions Hooks C");
-    INSTALL_HOOK_OFFSETLESS(BeatmapObjectSpawnController_Init, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "BeatmapObjectSpawnController/InitData"), ".ctor", 7));
+    INSTALL_HOOK_OFFSETLESS(BeatmapObjectSpawnController_Init, il2cpp_utils::FindMethod("", "BeatmapObjectSpawnController/InitData", ".ctor", 7));
       //  log(INFO, "Installing Mapping Extensions Hooks C");
-    INSTALL_HOOK_OFFSETLESS(BeatmapObjectExecutionRatingsRecorder_HandleBeatmapObjectSpawnControllerObstacleDidPassAvoidedMark, il2cpp_functions::class_get_method_from_name(il2cpp_utils::GetClassFromName("", "BeatmapObjectExecutionRatingsRecorder"), "HandleBeatmapObjectSpawnControllerObstacleDidPassAvoidedMark", 2));
+    INSTALL_HOOK_OFFSETLESS(BeatmapObjectExecutionRatingsRecorder_HandleBeatmapObjectSpawnControllerObstacleDidPassAvoidedMark, il2cpp_utils::FindMethod("", "BeatmapObjectExecutionRatingsRecorder", "HandleBeatmapObjectSpawnControllerObstacleDidPassAvoidedMark", 2));
 
     log(INFO, "Installed  Mapping Extensions Hooks!");
 }
