@@ -12,8 +12,6 @@
 #include "../beatsaber-hook/shared/utils/il2cpp-utils.hpp"
 #include "../beatsaber-hook/shared/utils/utils-functions.h"
 
-#define MOD_ID "MappingExtensions"
-#define VERSION "0.16.0"
 
 using TYPEDEFS_H::Quaternion;
 
