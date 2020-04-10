@@ -112,64 +112,6 @@ struct BeatmapLineData : Il2CppObject {
     Array<BeatmapObjectData*>* beatmapObjectData;
 };
 
-struct Bounds : Il2CppObject {
-    Vector3 center;
-    Vector3 extents;
-};
-
-struct StretchableObstacle : UnityObject {
-    float edgeSize;
-    float coreOffset;
-    float addColorMultiplier;
-    int32_t pad1;
-    void* obstacleCore;
-    void* stretchableCore;
-    void* obstacleFrame;
-    void* obstacleFakeGlow;
-    void* addColorSetters;
-    void* tintcolorSetters;
-    void* bounds;
-};
-
-/*
-struct ObstacleController : UnityObject {
-    void* activeObstaclesManager;
-    StretchableObstacle* stretchableObstacle;
-    void* color;
-    float endDistanceOffset;
-    int32_t pad1;
-    void* visualWrappers;
-    void* playerController;
-    void* audioTimeSyncController;
-    void* didInitEvent;
-    void* finishedMovementEvent;
-    void* passedThreeQuartersOfMove2Event;
-    void* passedAvoidedMarkEvent;
-    void* didStartDissolvingEvent;
-    void* didDissolveEvent;
-    Vector3 startPos;
-    Vector3 midPos;
-    Vector3 endPos;
-    float move1Duration;
-    float move2Duration;
-    float startTimeOffset;
-    float obstacleDuration;
-    bool passedThreeQuartersOfMove2Reported;
-    bool passedAvoidedMarkReported;
-    int16_t pad2;
-    float passedAvoidedMarkTime;
-    float finishMovementTime;
-    bool initialized;
-    int16_t pad3;
-    bool pad4;
-    void* bounds;
-    bool dissolving;
-    int16_t pad5;
-    bool pad6;
-    ObstacleData* obstacleData;
-};
-*/
-
 struct BeatmapData : Il2CppObject {
     Array<BeatmapLineData*>* beatmapLinesData;
     Array<BeatmapEventData*>* beatmapEventData;
@@ -894,6 +836,7 @@ MAKE_HOOK_OFFSETLESS(BeatmapDataLoader_GetBeatmapDataFromBeatmapSaveData, Beatma
     List<SaveDataObstacleData*>* obstaclesSaveData, List<SaveDataEventData*>* eventsSaveData, float beatsPerMinute, float shuffle,
     float shufflePeriod)
 {
+    // Preprocess the lineIndex's to be 0-3 (the real method is hard-coded to 4 lines), recording the info necessary to reverse it
     std::map<int, int> extendedLanesMap;
     int num = -1;
     for (int i = 0; i < noteSaveData->size; ++i) {
@@ -929,6 +872,8 @@ MAKE_HOOK_OFFSETLESS(BeatmapDataLoader_GetBeatmapDataFromBeatmapSaveData, Beatma
 
     BeatmapData* result = BeatmapDataLoader_GetBeatmapDataFromBeatmapSaveData(
         noteSaveData, obstaclesSaveData, eventsSaveData, beatsPerMinute, shuffle, shufflePeriod);
+
+    // Reverse the lineIndex changes
     for (int i = 0; i < result->beatmapLinesData->Length(); ++i) {
         for (int j = 0; j < result->beatmapLinesData->values[i]->beatmapObjectData->Length(); ++j) {
             int id                   = result->beatmapLinesData->values[i]->beatmapObjectData->values[j]->id;
@@ -942,6 +887,7 @@ MAKE_HOOK_OFFSETLESS(BeatmapDataLoader_GetBeatmapDataFromBeatmapSaveData, Beatma
         }
     }
 
+    // ??
     if (extendedLanesMap.size() > 0) {
         log(INFO, "Attempting to correct extended lanes not flipping");
         std::vector<NoteData*> allnotes;
