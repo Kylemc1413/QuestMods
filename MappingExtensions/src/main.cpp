@@ -587,7 +587,7 @@ MAKE_HOOK_OFFSETLESS(ObstacleController_Init, void, Il2CppObject* self, Obstacle
     SetStrechableObstacleSize(stretchableObstacle, (num * 0.98f), (obsHeight * multiplier), (length));
     //  dump_real(0, 50, self->stretchableObstacle);
 
-    auto* stretchableObstacleBounds = *RET_V_UNLESS(il2cpp_utils::GetFieldValue(stretchableObstacle, "_bounds"));
+    auto* stretchableObstacleBounds = *RET_V_UNLESS(il2cpp_utils::GetPropertyValue(stretchableObstacle, "bounds"));
     il2cpp_utils::SetFieldValue(self, "_bounds", stretchableObstacleBounds);
 }
 
