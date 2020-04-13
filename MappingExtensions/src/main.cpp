@@ -333,19 +333,41 @@ MAKE_HOOK_OFFSETLESS(NoteData_MirrorTransformCutDirection, void, NoteData* self)
     }
 }
 
-// TODO: investigate
+static std::map<int, int> mirrorLanesMap;
 MAKE_HOOK_OFFSETLESS(BeatDataMirrorTransform_CreateTransformedData, BeatmapData*, BeatmapData* beatmapData)
 {
-    for (int i = 0; i < beatmapData->beatmapLinesData->Length(); ++i) {
-        for (int j = 0; j < beatmapData->beatmapLinesData->values[i]->beatmapObjectData->Length(); ++j) {
-            int index = beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex;
-            if (index > 3 || index < 0) {
-                log(ERROR, "Non-Standard Line indicies detected. Returning original data");
-                return beatmapData;
+    // This will call BeatDataMirrorTransform_MirrorTransformBeatmapObjects which will populate mirrorLanesMap for us
+    auto result = BeatDataMirrorTransform_CreateTransformedData(beatmapData);
+
+    // restore the line indices
+    for (int i = 0; i < result->beatmapLinesData->Length(); ++i) {
+        for (int j = 0; j < result->beatmapLinesData->values[i]->beatmapObjectData->Length(); ++j) {
+            int id = result->beatmapLinesData->values[i]->beatmapObjectData->values[j]->id;
+            if (mirrorLanesMap.find(id) != mirrorLanesMap.end()) {
+                result->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex = mirrorLanesMap[id];
             }
         }
     }
-    return BeatDataMirrorTransform_CreateTransformedData(beatmapData);
+    mirrorLanesMap.clear();
+    return result;
+}
+MAKE_HOOK_OFFSETLESS(BeatDataMirrorTransform_MirrorTransformBeatmapObjects, void,
+    List<BeatmapObjectData*>* beatmapObjects, int beatmapLineCount)
+{
+    BeatDataMirrorTransform_MirrorTransformBeatmapObjects(beatmapObjects, beatmapLineCount);
+    // preprocess the flipped indices into the normal range
+    for (int i = 0; i < beatmapObjects->size; ++i) {
+        int id = beatmapObjects->items->values[i]->id;
+        if (beatmapObjects->items->values[i]->lineIndex > 3) {
+            // log(INFO,"Putting id: %i in map.", id);
+            mirrorLanesMap[id] = beatmapObjects->items->values[i]->lineIndex;
+            beatmapObjects->items->values[i]->lineIndex = 3;
+        } else if (beatmapObjects->items->values[i]->lineIndex < 0) {
+            // log(INFO,"Putting id: %i in map.", id);
+            mirrorLanesMap[id] = beatmapObjects->items->values[i]->lineIndex;
+            beatmapObjects->items->values[i]->lineIndex = 0;
+        }
+    }
 }
 
 MAKE_HOOK_OFFSETLESS(BeatmapDataNoArrowsTransform_CreateTransformedData, BeatmapData*, BeatmapData* beatmapData, bool randomColors)
@@ -358,8 +380,7 @@ MAKE_HOOK_OFFSETLESS(BeatmapDataNoArrowsTransform_CreateTransformedData, Beatmap
                 //               log(INFO,"Putting id: %i in map.", id);
                 extendedLanesMap[id] = beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex;
                 beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex = 3;
-            }
-            if (beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex < 0) {
+            } else if (beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex < 0) {
                 //             log(INFO,"Putting id: %i in map.", id);
                 extendedLanesMap[id] = beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex;
                 beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex = 0;
@@ -405,8 +426,7 @@ MAKE_HOOK_OFFSETLESS(BeatmapDataObstaclesAndBombsTransform_CreateTransformedData
                 //      log(INFO,"Putting id: %i in map.", id);
                 extendedLanesMap[id] = beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex;
                 beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex = 3;
-            }
-            if (beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex < 0) {
+            } else if (beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex < 0) {
                 //          log(INFO,"Putting id: %i in map.", id);
                 extendedLanesMap[id] = beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex;
                 beatmapData->beatmapLinesData->values[i]->beatmapObjectData->values[j]->lineIndex = 0;
@@ -439,7 +459,7 @@ MAKE_HOOK_OFFSETLESS(BeatmapDataObstaclesAndBombsTransform_CreateTransformedData
     return result;
 }
 
-void MirrorPrecisionLineIndex(int& lineIndex)
+bool MirrorPrecisionLineIndex(int& lineIndex)
 {
     if (lineIndex >= 1000 || lineIndex <= -1000) {
         bool inVanillaRange = false;
@@ -450,24 +470,33 @@ void MirrorPrecisionLineIndex(int& lineIndex)
         if (!inVanillaRange)
             newIndex -= 2000;
         lineIndex = newIndex;
+        return true;
     }
+    return false;
 }
 MAKE_HOOK_OFFSETLESS(NoteData_MirrorLineIndex, void, NoteData* self, int lineCount)
 {
     int lineIndex     = self->lineIndex;
     int flipLineIndex = self->flipLineIndex;
     NoteData_MirrorLineIndex(self, lineCount);
-    MirrorPrecisionLineIndex(self->lineIndex);
-    MirrorPrecisionLineIndex(self->flipLineIndex);
+
+    int origLineIndex = lineIndex;
+    if (MirrorPrecisionLineIndex(lineIndex)) {
+        self->lineIndex = lineIndex;
+        log(DEBUG, "mirrored %i to %i", origLineIndex, lineIndex);
+    }
+    if (MirrorPrecisionLineIndex(flipLineIndex)) {
+        self->flipLineIndex = flipLineIndex;
+    }
 }
 
 MAKE_HOOK_OFFSETLESS(ObstacleData_MirrorLineIndex, void, ObstacleData* self, int lineCount)
 {
     int __state = self->lineIndex;
-    ObstacleData_MirrorLineIndex(self, lineCount);
-
     bool precisionWidth = (self->width >= 1000);
-    //   Console.WriteLine("Width: " + __instance.width);
+    // Console.WriteLine("Width: " + __instance.width);
+
+    ObstacleData_MirrorLineIndex(self, lineCount);
     if (__state >= 1000 || __state <= -1000 || precisionWidth) {
         float effectiveIndex = ToEffectiveIndex(__state);
         float effectiveWidth = ToEffectiveIndex(self->width);
@@ -479,6 +508,7 @@ MAKE_HOOK_OFFSETLESS(ObstacleData_MirrorLineIndex, void, ObstacleData* self, int
         self->lineIndex = EffectiveIndexToIndex(effectiveLeftSideMirrored);
     }
 }
+
 MAKE_HOOK_OFFSETLESS(FlyingScoreSpawner_SpawnFlyingScore, void, Il2CppObject* self, void* noteCutInfo, int noteLineIndex,
     int multiplier, Vector3 pos, Quaternion rotation, Quaternion inverseRotation, Color color)
 {
@@ -730,8 +760,11 @@ extern "C" void load()
     INSTALL_HOOK_OFFSETLESS(BeatmapDataLoader_GetBeatmapDataFromBeatmapSaveData,
         il2cpp_utils::FindMethodUnsafe("", "BeatmapDataLoader", "GetBeatmapDataFromBeatmapSaveData", 6));
 
+    // These hooks work together to do the job of the CreateTransformedData hook in the PC version
     INSTALL_HOOK_OFFSETLESS(BeatDataMirrorTransform_CreateTransformedData,
         il2cpp_utils::FindMethodUnsafe("", "BeatDataMirrorTransform", "CreateTransformedData", 1));
+    INSTALL_HOOK_OFFSETLESS(BeatDataMirrorTransform_MirrorTransformBeatmapObjects,
+        il2cpp_utils::FindMethodUnsafe("", "BeatDataMirrorTransform", "MirrorTransformBeatmapObjects", 2));
 
     INSTALL_HOOK_OFFSETLESS(BeatmapDataNoArrowsTransform_CreateTransformedData,
         il2cpp_utils::FindMethodUnsafe("", "BeatmapDataNoArrowsTransform", "CreateTransformedData", 2));
