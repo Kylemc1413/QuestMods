@@ -95,7 +95,7 @@ Il2CppObject* leftSaber = nullptr;
 Il2CppObject* rightSaber = nullptr;
 void CustomSaberImportComplete(AssetImporter* importer)
 {
-    if (!importer->loadedAsset)
+    if (!importer->LoadedAsset())
         return;
     if (leftSaber) {
         auto* inst = importer->InstantiateAsset();
@@ -120,8 +120,8 @@ void BeginAssetImport()
 {
     if (!importer) {
         log(DEBUG, "Making importer");
-        importer = new AssetImporter("/sdcard/Android/data/com.beatgames.beatsaber/files/sabers/testSaber.qsaber", "_customsaber",
-            CustomSaberImportComplete);
+        importer = new AssetImporter("/sdcard/Android/data/com.beatgames.beatsaber/files/sabers/testSaber.qsaber", "_customsaber");
+        importer->LoadAssetBundle();
     }
 }
 MAKE_HOOK_OFFSETLESS(GameplayCoreSceneSetup_Start, void, Il2CppObject* self)
@@ -130,33 +130,34 @@ MAKE_HOOK_OFFSETLESS(GameplayCoreSceneSetup_Start, void, Il2CppObject* self)
     GameplayCoreSceneSetup_Start(self);
     BeginAssetImport();
 }
-MAKE_HOOK_OFFSETLESS(TutorialController_Awake, void, Il2CppObject* self)
-{
-    log(INFO, "Called TutorialController_Awake hook");
-    TutorialController_Awake(self);
-    BeginAssetImport();
-}
+// // No longer exists?
+// MAKE_HOOK_OFFSETLESS(TutorialController_Awake, void, Il2CppObject* self)
+// {
+//     log(INFO, "Called TutorialController_Awake hook");
+//     TutorialController_Start(self);
+//     BeginAssetImport();
+// }
 
 MAKE_HOOK_OFFSETLESS(SceneManager_SetActiveScene, bool, int scene)
 {
-    log(INFO, "Called SceneManager_SetActiveScene hook");
     bool result = SceneManager_SetActiveScene(scene);
 
     // Get Scene Name
     auto* csName
         = *CRASH_UNLESS(il2cpp_utils::RunMethod<Il2CppString*>("UnityEngine.SceneManagement", "Scene", "GetNameInternal", scene));
     auto sceneName = to_utf8(csstrtostr(csName)).c_str();
+    log(INFO, "SceneManager_SetActiveScene: scene name: %s", sceneName);
 
-    // Code to run if menuCore
-    if (std::strncmp(sceneName, "MenuCore", 8) == 0) {
-        log(INFO, "MenuCore Scene");
+    // Code to run if GameCore
+    if (std::strncmp(sceneName, "GameCore", 8) == 0) {
+        importer->LoadAsset();
     }
     return result;
 }
 
 MAKE_HOOK_OFFSETLESS(Saber_Start, void, Il2CppObject* self)
 {
-    BeginAssetImport();
+    importer->LoadAsset();  // just in case
     Saber_Start(self);
     log(INFO, "Called Saber_Start hook");
     int saberType = *RET_V_UNLESS(il2cpp_utils::GetPropertyValue<int>(self, "saberType"));
@@ -165,9 +166,7 @@ MAKE_HOOK_OFFSETLESS(Saber_Start, void, Il2CppObject* self)
     } else {
         rightSaber = self;
     }
-    if (importer->loadedAsset) {
-        CustomSaberImportComplete(importer);
-    }
+    importer->RegisterOrDoCallback(CustomSaberImportComplete);
 }
 
 extern "C" void load()
@@ -176,9 +175,8 @@ extern "C" void load()
     log(INFO, "Installing Custom Sabers Hooks!");
     INSTALL_HOOK_OFFSETLESS(SceneManager_SetActiveScene,
         il2cpp_utils::FindMethodUnsafe("UnityEngine.SceneManagement", "SceneManager", "SetActiveScene", 1));
-    // INSTALL_HOOK_OFFSETLESS(GameplayCoreSceneSetup_Start, il2cpp_utils::FindMethod("", "GameplayCoreSceneSetup", "Start"));
-    // No longer exists
-    // INSTALL_HOOK_OFFSETLESS(TutorialController_Awake, il2cpp_utils::FindMethod("", "TutorialController", "Awake"));
+    INSTALL_HOOK_OFFSETLESS(GameplayCoreSceneSetup_Start, il2cpp_utils::FindMethod("", "GameplayCoreSceneSetup", "Start"));
+    // INSTALL_HOOK_OFFSETLESS(TutorialController_Awake, il2cpp_utils::FindMethod("", "TutorialController", "Start"));
     INSTALL_HOOK_OFFSETLESS(Saber_Start, il2cpp_utils::FindMethod("", "Saber", "Start"));
     log(INFO, "Installed Custom Sabers Hooks!");
 }
