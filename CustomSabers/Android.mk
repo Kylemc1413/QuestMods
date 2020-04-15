@@ -32,7 +32,7 @@ LOCAL_MODULE := hook
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 include $(CLEAR_VARS)
 LOCAL_LDLIBS := -llog
-LOCAL_CFLAGS    := -DMOD_ID='"CustomSabers"' -DVERSION='"0.0.1"' -I'C:\Unity\Editor\Data\il2cpp\libil2cpp' -Wunused
+LOCAL_CFLAGS    := -DMOD_ID='"CustomSabers"' -DVERSION='"0.0.1"' -I'C:\Unity\Editor\Data\il2cpp\libil2cpp'
 LOCAL_MODULE    := customsabers
 
 #LOCAL_SHARED_LIBRARIES := testil2cpp
