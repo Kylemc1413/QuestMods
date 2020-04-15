@@ -27,7 +27,7 @@ Il2CppObject* AssetImporter::InstantiateAsset(std::string_view nameSpace, std::s
 void AssetImporter::AssetComplete(AssetImporter* obj, Il2CppObject* asyncOp)
 {
     CRASH_UNLESS(il2cpp_utils::GetPropertyValue<bool>(asyncOp, "isDone").value_or(false));
-    obj->asset = *RET_V_UNLESS(il2cpp_utils::RunMethod(asyncOp, "get_asset"));
+    obj->asset = *RET_V_UNLESS(il2cpp_utils::GetPropertyValue(asyncOp, "asset"));
     // RET_V_UNLESS(CheckAssetClass(asset));
 
     if (obj->whenDone) {
@@ -67,7 +67,7 @@ bool AssetImporter::LoadAsset(std::string_view assetNameS)
 
 void AssetImporter::AssetBundleComplete(AssetImporter* obj, Il2CppObject* asyncOp)
 {
-    obj->assetBundle = *RET_V_UNLESS(il2cpp_utils::RunMethod(asyncOp, "get_assetBundle"));
+    obj->assetBundle = *RET_V_UNLESS(il2cpp_utils::GetPropertyValue(asyncOp, "assetBundle"));
     if (obj->permissionToLoadAsset)
         obj->LoadAsset();
 }
@@ -81,6 +81,7 @@ bool AssetImporter::LoadAssetBundle(bool alsoLoadAsset)
     RET_0_UNLESS(pathExists);
     if (!bundleAsync) {
         bundleAsync = *RET_0_UNLESS(il2cpp_utils::RunMethod("UnityEngine", "AssetBundle", "LoadFromFileAsync", assetFilePath));
+        // TODO: change to SetPropertyValue(bundleAsync, "allowSceneActivation", true) when true becomes a valid param
         RET_0_UNLESS(il2cpp_utils::RunMethod(bundleAsync, "set_allowSceneActivation", true));
 
         auto method = RET_0_UNLESS(il2cpp_utils::FindMethodUnsafe(bundleAsync, "add_completed", 1));

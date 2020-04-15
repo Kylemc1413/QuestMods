@@ -37,7 +37,7 @@ public:
         SetNextAssetType(assetNamespace, assetClassName);
     }
 
-    Il2CppObject* InstantiateAsset(std::string_view nameSpace = "UnityEngine", std::string_view klass = "GameObject",
+    Il2CppObject* InstantiateAsset(std::string_view nameSpace = "UnityEngine", std::string_view klass = "Object",
         std::string_view method = "Instantiate") const;
 
     // Returns true if the asset bundle load has been requested, false otherwise
