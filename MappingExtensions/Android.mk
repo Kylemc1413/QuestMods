@@ -16,21 +16,34 @@
 #
 LOCAL_PATH := $(call my-dir)
 TARGET_ARCH_ABI := $(APP_ABI)
-
-include $(CLEAR_VARS)
-LOCAL_MODULE := hook
-
-include $(CLEAR_VARS)
-
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
-LOCAL_LDLIBS := -llog
-LOCAL_CFLAGS    := -DMOD_ID='"MappingExtensions"' -DVERSION='"0.16.0"' -I'C:\Unity\Editor\Data\il2cpp\libil2cpp'
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := modloader
+LOCAL_SRC_FILES := extern/libmodloader.so
+include $(PREBUILT_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := beatsaber-hook_0_4_4
+LOCAL_SRC_FILES := extern/libbeatsaber-hook_0_4_4.so
+LOCAL_EXPORT_CFLAGS := -DNEED_UNSAFE_CSHARP
+LOCAL_EXPORT_C_INCLUDES := extern/beatsaber-hook/shared
+include $(PREBUILT_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := il2cpp-codegen_0_1_4
+LOCAL_SRC_FILES := extern/codegen/obj/libil2cpp_codegen_0_1_4.so
+LOCAL_CPP_FEATURES := rtti exceptions
+LOCAL_EXPORT_C_INCLUDES := extern/codegen/include
+LOCAL_EXPORT_CFLAGS := -Wno-inaccessible-base
+include $(PREBUILT_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
 LOCAL_MODULE    := mappingextensions
-LOCAL_SRC_FILES  += $(call rwildcard,../beatsaber-hook/shared/inline-hook/,*.cpp) $(call rwildcard,../beatsaber-hook/shared/utils/,*.cpp) $(call rwildcard,../beatsaber-hook/shared/inline-hook/,*.c)
-# In order to add configuration support to your project, uncomment the following line:
-#LOCAL_SRC_FILES  += $(call rwildcard,../beatsaber-hook/shared/config/,*.cpp)
-# In order to add custom UI support to your project, uncomment the following line:
-#LOCAL_SRC_FILES  += $(call rwildcard,../beatsaber-hook/shared/customui/,*.cpp)
-# Add any new SRC includes from beatsaber-hook or other external libraries here
-LOCAL_SRC_FILES  += $(call rwildcard,./src,*.cpp)
+LOCAL_SRC_FILES += $(call rwildcard,src/,*.cpp)
+LOCAL_SRC_FILES += $(call rwildcard,extern/beatsaber-hook/src/inline-hook/,*.cpp)
+LOCAL_SRC_FILES += $(call rwildcard,extern/beatsaber-hook/src/inline-hook/,*.c)
+LOCAL_SHARED_LIBRARIES := modloader beatsaber-hook_0_4_4 il2cpp-codegen_0_1_4
+LOCAL_LDLIBS := -llog
+LOCAL_CFLAGS    += -isystem 'extern' -isystem 'extern\libil2cpp\il2cpp\libil2cpp' -Wall -Wextra -isystem 'extern'
 include $(BUILD_SHARED_LIBRARY)

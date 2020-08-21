@@ -7,7 +7,7 @@ adb shell am force-stop com.beatgames.beatsaber
 # Remove-Item ./obj -r
 # Remove-Item ./libs -r
 
-C:\android\sdk\ndk\21.0.6113669\ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk V=1
+& $PSScriptRoot/build.ps1
 $native_call_success = $?
 if (-not $native_call_success)
 {
@@ -16,11 +16,8 @@ if (-not $native_call_success)
 
 adb shell am force-stop com.beatgames.beatsaber
 
-gci -rec -file -path libs -filter *.so  |
+gci -rec -file -path libs -filter *extensions.so  |
     % { adb push $_.FullName /sdcard/Android/data/com.beatgames.beatsaber/files/mods/ }
-
-Copy-Item libs/arm*/*.so .
-Compress-Archive -LiteralPath libmod2.so, beatonmod.json -DestinationPath menuMod -Force
+adb push libs/arm64-v8a/libil2cpp_codegen_0_1_4.so /sdcard/Android/data/com.beatgames.beatsaber/files/libs/
 
 adb shell am force-stop com.beatgames.beatsaber
-adb shell am start com.beatgames.beatsaber/com.unity3d.player.UnityPlayerActivity

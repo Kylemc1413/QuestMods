@@ -5,10 +5,10 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/../beatsaber-hook/**",
-                "C:/android/sdk/ndk/21.0.6113669/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include/x86_64-linux-android",
-                "C:/android/sdk/ndk/21.0.6113669/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include/c++/v1",
-                "C:/android/sdk/ndk/21.0.6113669/toolchains/llvm/prebuilt/windows-x86_64/lib64/clang/9.0.8/include",
-                "C:/android/sdk/ndk/21.0.6113669/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include",
+                "C:/android/sdk/ndk/21.3.6528147/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include/x86_64-linux-android",
+                "C:/android/sdk/ndk/21.3.6528147/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include/c++/v1",
+                "C:/android/sdk/ndk/21.3.6528147/toolchains/llvm/prebuilt/windows-x86_64/lib64/clang/9.0.8/include",
+                "C:/android/sdk/ndk/21.3.6528147/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include",
                 "C:/Unity/Editor/Data/il2cpp/libil2cpp/**"
             ],
             "defines": [
@@ -18,9 +18,9 @@
                 "__ANDROID__"
             ],
             "windowsSdkVersion": "10.0.17763.0",
-            "cStandard": "c11",
-            "cppStandard": "c++20",
-            "intelliSenseMode": "clang-x64"
+            "cStandard": "gnu18",
+            "cppStandard": "gnu++20",
+            "intelliSenseMode": "clang-arm64"
         }
     ],
     "version": 4
