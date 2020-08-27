@@ -162,7 +162,6 @@ MAKE_HOOK_OFFSETLESS(BeatmapObjectSpawnController_Init, void, Il2CppObject* self
 }
 MAKE_HOOK_OFFSETLESS(MainMenuViewController_DidActivate, void, Il2CppObject* self,
                      bool firstActivation, int activationType) {
-    logger().info("resetting storedDiffBeatmap!");
     storedDiffBeatmap = nullptr;
     return MainMenuViewController_DidActivate(self, firstActivation, activationType);
 }
