@@ -4,16 +4,14 @@
   "info": {
     "name": "MappingExtensions",
     "id": "MappingExtensions",
-    "version": "0.17.1",
+    "version": "0.17.2",
     "url": "https://github.com/zoller27osu/QuestMods",
-    "additionalData": {
-      "soLink": "https://github.com/zoller27osu/QuestMods/releases/download/v0.17.1/libmappingextensions.so"
-    }
+    "additionalData": {}
   },
   "dependencies": [
     {
       "id": "beatsaber-hook",
-      "versionRange": "^0.4.7",
+      "versionRange": "^0.7.0",
       "additionalData": {
         "extraFiles": [
           "src/inline-hook"
@@ -22,7 +20,7 @@
     },
     {
       "id": "codegen",
-      "versionRange": "^0.2.1",
+      "versionRange": "^0.3.0",
       "additionalData": {}
     }
   ],

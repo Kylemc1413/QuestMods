@@ -1,25 +1,38 @@
 {
 	"id": "MappingExtensions",
 	"name": "Mapping Extensions",
-	"author": "Kyle 1413",
-	"description": [
-		"This adds a host of new things you can do with your maps as a mapper, and allows you to play said maps as a player."
-	],
-	"category": "Other",
-	"gameVersion": "1.11.0",
-	"version": "0.17.1",
+    "author": "zoller27osu",
+    "description": [
+        "An update of the port of the PC original mod by Kyle 1413.",
+        "This adds a host of new things you can do with your maps as a mapper, and allows you to play said maps as a player."
+    ],
+    "category": "Other",
+    "gameVersion": "1.12.2",
+	"version": "0.17.2",
 	"links": {
-		"project-home": "https://github.com/Kylemc1413/QuestMods"
+		"project-home": "https://github.com/zoller27osu/QuestMods"
 	},
 	"platform": "Quest",
 	"components": [{
-			"Type": "HookMod",
-			"InstallAction": {
-				"InstallLibraryFile": "libmappingextensions.so"
+			"type": "HookMod",
+			"installAction": {
+				"installLibraryFile": "libmappingextensions.so"
 			},
-			"UninstallAction": {
-				"RemoveLibraryFile": "libmappingextensions.so"
+			"uninstallAction": {
+				"removeLibraryFile": "libmappingextensions.so"
 			}
-		}
+		},
+		{
+            "type": "HookModLibrary",
+            "installAction": {
+                "installLibraryFile": "libbeatsaber-hook_0_7_7.so"
+            }
+		},
+		{
+            "type": "HookModLibrary",
+            "installAction": {
+                "installLibraryFile": "libcodegen_0_3_4.so"
+            }
+        }
 	]
 }

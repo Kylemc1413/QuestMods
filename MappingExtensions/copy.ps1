@@ -18,6 +18,9 @@ adb shell am force-stop com.beatgames.beatsaber
 
 gci -rec -file -path libs -filter *extensions.so  |
     % { adb push $_.FullName /sdcard/Android/data/com.beatgames.beatsaber/files/mods/ }
-adb push libs/arm64-v8a/libil2cpp_codegen_0_1_4.so /sdcard/Android/data/com.beatgames.beatsaber/files/libs/
+gci -rec -file -path libs -filter *codegen*.so  |
+    % { adb push $_.FullName /sdcard/Android/data/com.beatgames.beatsaber/files/libs/ }
+gci -rec -file -path libs -filter *beatsaber-hook*.so  |
+    % { adb push $_.FullName /sdcard/Android/data/com.beatgames.beatsaber/files/libs/ }
 
 adb shell am force-stop com.beatgames.beatsaber
