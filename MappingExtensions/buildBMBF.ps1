@@ -7,4 +7,4 @@ if (-not ($PSVersionTable.PSEdition -eq "Core")) {
 }
 
 & $buildScript NDK_PROJECT_PATH=$PSScriptRoot APP_BUILD_SCRIPT=$PSScriptRoot/Android.mk NDK_APPLICATION_MK=$PSScriptRoot/Application.mk
-Compress-Archive -Path "./bmbfmod.json","./libs/arm64-v8a/libmappingextensions.so","./libs/arm64-v8a/libbeatsaber-hook_0_7_7.so","./libs/arm64-v8a/libcodegen_0_3_4.so" -DestinationPath "./MappingExtensions_v0.17.2.zip" -Update
+Compress-Archive -Path "./bmbfmod.json","./libs/arm64-v8a/libmappingextensions.so","./libs/arm64-v8a/libbeatsaber-hook_0_7_7.so","./libs/arm64-v8a/libcodegen_0_3_4.so" -DestinationPath "./MappingExtensions_v0.17.3.zip" -Update

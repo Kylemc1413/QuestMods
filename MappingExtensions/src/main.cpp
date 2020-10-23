@@ -30,6 +30,7 @@
 #include "GlobalNamespace/IDifficultyBeatmapSet.hpp"
 #include "GlobalNamespace/NoteCutDirectionExtensions.hpp"
 #include "GlobalNamespace/NoteData.hpp"
+#include "GlobalNamespace/NoteLineLayer.hpp"
 #include "GlobalNamespace/NotesInTimeRowProcessor.hpp"
 #include "GlobalNamespace/ObstacleController.hpp"
 #include "GlobalNamespace/ObstacleData.hpp"
@@ -59,7 +60,7 @@ const Logger& logger()
 extern "C" void setup(ModInfo& info)
 {
     info.id      = "MappingExtensions";
-    info.version = "0.17.2";
+    info.version = "0.17.3";
     modInfo      = info;
     logger().info("Leaving setup!");
 }
@@ -109,6 +110,7 @@ float ToEffectiveIndex(int index)
     return effectiveIndex;
 }
 
+static IDifficultyBeatmap* storedDiffBeatmap = nullptr;
 static BeatmapCharacteristicSO* storedBeatmapCharacteristicSO = nullptr;
 MAKE_HOOK_OFFSETLESS(StandardLevelDetailView_RefreshContent, void, StandardLevelDetailView* self)
 {
@@ -121,11 +123,39 @@ MAKE_HOOK_OFFSETLESS(MainMenuViewController_DidActivate, void, Il2CppObject* sel
     return MainMenuViewController_DidActivate(self, firstActivation, addedToHierarchy, screenSystemEnabling);
 }
 
+static bool skipWallRatings = false;
+MAKE_HOOK_OFFSETLESS(BeatmapObjectSpawnController_Init, void, Il2CppObject* self, float beatsPerMinute, int noteLinesCount,
+    float noteJumpMovementSpeed, float noteJumpStartBeatOffset, float jumpOffsetY)
+{
+    if (storedDiffBeatmap) {
+        float njs = storedDiffBeatmap->get_noteJumpMovementSpeed();
+        if (njs < 0)
+            noteJumpMovementSpeed = njs;
+    }
+    skipWallRatings = false;
+
+    return BeatmapObjectSpawnController_Init(
+        self, beatsPerMinute, noteLinesCount, noteJumpMovementSpeed, noteJumpStartBeatOffset, jumpOffsetY);
+}
+
+MAKE_HOOK_OFFSETLESS(BeatmapObjectExecutionRatingsRecorder_HandleObstacleDidPassAvoidedMark, void, Il2CppObject* self,
+    Il2CppObject* obstacleController)
+{
+    if (skipWallRatings) {
+        return;
+    } else {
+        return BeatmapObjectExecutionRatingsRecorder_HandleObstacleDidPassAvoidedMark(self, obstacleController);
+    }
+}
+
 /* PC version hooks */
 
 MAKE_HOOK_OFFSETLESS(BeatmapObjectSpawnMovementData_GetNoteOffset, UnityEngine::Vector3, BeatmapObjectSpawnMovementData* self,
     int noteLineIndex, GlobalNamespace::NoteLineLayer noteLineLayer)
 {
+    if (noteLineIndex == 4839) {
+        logger().info("lineIndex %i and lineLayer %i!", noteLineIndex, noteLineLayer.value);
+    }
     auto __result = BeatmapObjectSpawnMovementData_GetNoteOffset(self, noteLineIndex, noteLineLayer);
     // if (!Plugin.active) return __result;
 
@@ -153,6 +183,9 @@ MAKE_HOOK_OFFSETLESS(BeatmapObjectSpawnMovementData_HighestJumpPosYForLineLayer,
     } else if (lineLayer > 2 || lineLayer < 0) {
         __result = self->upperLinesHighestJumpPosY - delta + self->jumpOffsetY + (lineLayer * delta);
     }
+    if (__result > 2.9f) {
+        logger().warning("Extreme note jump! lineLayer %i gave jump %f!", lineLayer, __result);
+    }
     return __result;
 }
 
@@ -166,7 +199,10 @@ MAKE_HOOK_OFFSETLESS(BeatmapObjectSpawnMovementData_LineYPosForLineLayer, float,
     if (lineLayer >= 1000 || lineLayer <= -1000) {
         __result = self->upperLinesYPos - delta - delta + (lineLayer * delta / 1000.0f);
     } else if (lineLayer > 2 || lineLayer < 0) {
-        __result = self->upperLinesYPos - delta + lineLayer * delta;
+        __result = self->upperLinesYPos - delta + (lineLayer * delta);
+    }
+    if (__result > 1.9f) {
+        logger().warning("Extreme note position! lineLayer %i gave YPos %f!", lineLayer, __result);
     }
     return __result;
 }
@@ -174,6 +210,9 @@ MAKE_HOOK_OFFSETLESS(BeatmapObjectSpawnMovementData_LineYPosForLineLayer, float,
 MAKE_HOOK_OFFSETLESS(BeatmapObjectSpawnMovementData_Get2DNoteOffset, UnityEngine::Vector2, BeatmapObjectSpawnMovementData* self,
     int noteLineIndex, GlobalNamespace::NoteLineLayer noteLineLayer)
 {
+    if (noteLineIndex == 4839) {
+        logger().info("lineIndex %i and lineLayer %i!", noteLineIndex, noteLineLayer.value);
+    }
     auto __result = BeatmapObjectSpawnMovementData_Get2DNoteOffset(self, noteLineIndex, noteLineLayer);
     // if (!Plugin.active) return __result;
     if (noteLineIndex >= 1000 || noteLineIndex <= -1000) {
@@ -252,6 +291,8 @@ MAKE_HOOK_OFFSETLESS(BeatmapObjectData_MirrorLineIndex, void, BeatmapObjectData*
 }
 MAKE_HOOK_OFFSETLESS(NoteData_MirrorLineIndex, void, NoteData* self, int lineCount)
 {
+    logger().debug("Mirroring note with time: %f, lineIndex: %i, lineLayer: %i, startNoteLineLayer: %i, cutDirection: %i",
+            self->time, self->lineIndex, self->noteLineLayer, self->startNoteLineLayer, self->cutDirection);
     int lineIndex     = self->lineIndex;
     int flipLineIndex = self->flipLineIndex;
     NoteData_MirrorLineIndex(self, lineCount);
@@ -285,6 +326,7 @@ MAKE_HOOK_OFFSETLESS(ObstacleController_Init, void, ObstacleController* self, Ob
         return;
     // Either wall height or wall width are precision
 
+    skipWallRatings = true;
     int mode        = (obstacleData->obstacleType.value >= 4001 && obstacleData->obstacleType.value <= 4100000) ? 1 : 0;
     int obsHeight;
     int startHeight = 0;
@@ -393,7 +435,38 @@ MAKE_HOOK_OFFSETLESS(NotesInTimeRowProcessor_ProcessAllNotesInTimeRow, void,
             item->lineIndex     = 0;
         }
     }
-    NotesInTimeRowProcessor_ProcessAllNotesInTimeRow(self, notes);
+
+    // NotesInTimeRowProcessor_ProcessAllNotesInTimeRow(self, notes);
+    // Instead, we have a reimplementation of the hooked method to deal with precision noteLineLayers:
+    for (il2cpp_array_size_t i = 0; i < self->notesInColumns->Length(); i++) {
+        self->notesInColumns->values[i]->Clear();
+    }
+    for (int j = 0; j < notes->size; j++) {
+        auto* noteData = notes->items->values[j];
+        auto* list = self->notesInColumns->values[noteData->lineIndex];
+
+        bool flag = false;
+        for (int k = 0; k < list->size; k++) {
+            if (list->items->values[k]->noteLineLayer.value > noteData->noteLineLayer.value) {
+                list->Insert(k, noteData);
+                flag = true;
+                break;
+            }
+        }
+        if (!flag) {
+            list->Add(noteData);
+        }
+    }
+    for (il2cpp_array_size_t l = 0; l < self->notesInColumns->Length(); l++) {
+        auto* list2 = self->notesInColumns->values[l];
+        for (int m = 0; m < list2->size; m++) {
+            auto* note = list2->items->values[m];
+            if (note->noteLineLayer.value >= 0 && note->noteLineLayer.value <= 2) {
+                note->SetNoteStartLineLayer(m);
+            }
+        }
+    }
+
     for (int i = 0; i < notes->size; ++i) {
         if (extendedLanesMap.find(i) != extendedLanesMap.end()) {
             auto* item = notes->items->values[i];
@@ -698,6 +771,13 @@ extern "C" void load()
     INSTALL_HOOK_OFFSETLESS(BeatmapDataNoArrowsTransform_CreateTransformedData,
         il2cpp_utils::FindMethodUnsafe("", "BeatmapDataNoArrowsTransform", "CreateTransformedData", 1));
     // end of clampers
+
+    // ???
+    INSTALL_HOOK_OFFSETLESS(BeatmapObjectSpawnController_Init,
+        il2cpp_utils::FindMethodUnsafe("", "BeatmapObjectSpawnController/InitData", ".ctor", 5));
+
+    INSTALL_HOOK_OFFSETLESS(BeatmapObjectExecutionRatingsRecorder_HandleObstacleDidPassAvoidedMark,
+        il2cpp_utils::FindMethodUnsafe("", "BeatmapObjectExecutionRatingsRecorder", "HandleObstacleDidPassAvoidedMark", 1));
 
     logger().info("Installed MappingExtensions Hooks!");
 }
