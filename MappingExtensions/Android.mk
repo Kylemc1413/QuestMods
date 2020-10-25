@@ -15,29 +15,38 @@
 #
 #
 LOCAL_PATH := $(call my-dir)
-
-TARGET_ARCH_ABI := arm64-v8a
-
-include $(CLEAR_VARS)
-LOCAL_MODULE := hook
-
-#include $(CLEAR_VARS)
-#LOCAL_MODULE := testil2cpp
-#LOCAL_SRC_FILES := libil2cpp.so
-#LOCAL_EXPORT_C_INCLUDES := ../beatsaber-hook/shared/libil2cpp
-#include $(PREBUILT_SHARED_LIBRARY)
-
-#LOCAL_SRC_FILES := $(LOCAL_PATH)/../obj/local/armeabi-v7a/libhook.a
-#LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../include
-include $(CLEAR_VARS)
-
+TARGET_ARCH_ABI := $(APP_ABI)
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
-LOCAL_LDLIBS := -llog
-LOCAL_CFLAGS    := -D"MOD_ID=\"MappingExtensions\"" -D"VERSION=\"0.16.0\"" -I"E:\Programs\Unity\Editor\Data\il2cpp\libil2cpp" #Path to libil2cpp
-LOCAL_MODULE    := mappingextensions
-LOCAL_CPPFLAGS := -std=c++2a 
-#LOCAL_SHARED_LIBRARIES := testil2cpp
-LOCAL_C_INCLUDES := ../beatsaber-hook/shared/
-LOCAL_SRC_FILES := $(call rwildcard, ../beatsaber-hook/shared/inline-hook/,*.cpp) $(call rwildcard, ../beatsaber-hook/shared/utils/,*.cpp) $(call rwildcard, ../beatsaber-hook/shared/inline-hook/,*.c) $(call rwildcard,./src,*.cpp)
-#LOCAL_STATIC_LIBRARIES := libhook
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := modloader
+LOCAL_EXPORT_C_INCLUDES := extern/modloader
+LOCAL_SRC_FILES := extern/libmodloader.so
+include $(PREBUILT_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := beatsaber-hook_0_7_7
+LOCAL_EXPORT_C_INCLUDES := extern/beatsaber-hook
+LOCAL_SRC_FILES := extern/libbeatsaber-hook_0_7_7.so
+LOCAL_CPP_FEATURES += exceptions
+include $(PREBUILT_SHARED_LIBRARY)
+
+# Creating prebuilt for dependency: codegen - version: 0.2.6
+include $(CLEAR_VARS)
+LOCAL_MODULE := codegen_0_3_4
+LOCAL_EXPORT_C_INCLUDES := extern/codegen/include
+LOCAL_SRC_FILES := extern/libcodegen_0_3_4.so
+LOCAL_CPP_FEATURES += exceptions
+include $(PREBUILT_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := mappingextensions
+LOCAL_SRC_FILES += $(call rwildcard,src/,*.cpp)
+LOCAL_SRC_FILES += $(call rwildcard,extern/beatsaber-hook/src/inline-hook/,*.cpp)
+LOCAL_SRC_FILES += $(call rwildcard,extern/beatsaber-hook/src/inline-hook/,*.c)
+LOCAL_SHARED_LIBRARIES += modloader
+LOCAL_SHARED_LIBRARIES += beatsaber-hook_0_7_7
+LOCAL_SHARED_LIBRARIES += codegen_0_3_4
+LOCAL_LDLIBS += -llog
+LOCAL_CFLAGS += -isystem'extern' -isystem'extern\libil2cpp\il2cpp\libil2cpp' -Wall -Wextra
 include $(BUILD_SHARED_LIBRARY)

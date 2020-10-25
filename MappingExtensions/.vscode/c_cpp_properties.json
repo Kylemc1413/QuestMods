@@ -1,0 +1,27 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/../beatsaber-hook/**",
+                "C:/android/sdk/ndk/21.3.6528147/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include/x86_64-linux-android",
+                "C:/android/sdk/ndk/21.3.6528147/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include/c++/v1",
+                "C:/android/sdk/ndk/21.3.6528147/toolchains/llvm/prebuilt/windows-x86_64/lib64/clang/9.0.8/include",
+                "C:/android/sdk/ndk/21.3.6528147/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include",
+                "C:/Unity/Editor/Data/il2cpp/libil2cpp/**"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "__ANDROID__"
+            ],
+            "windowsSdkVersion": "10.0.17763.0",
+            "cStandard": "gnu18",
+            "cppStandard": "gnu++20",
+            "intelliSenseMode": "clang-arm64"
+        }
+    ],
+    "version": 4
+}

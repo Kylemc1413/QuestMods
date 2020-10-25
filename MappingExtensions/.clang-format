@@ -1,0 +1,22 @@
+BasedOnStyle: WebKit
+IndentWidth: 4
+UseTab: Never
+---
+Language: Cpp
+# Force pointers to the type for C++.
+DerivePointerAlignment: false
+PointerAlignment: Left
+
+AlwaysBreakTemplateDeclarations: Yes
+AlignConsecutiveAssignments: true
+AlignTrailingComments: true
+IndentWrappedFunctionNames: true
+ContinuationIndentWidth: 4
+SortIncludes: true
+SortUsingDeclarations: true
+SpaceBeforeParens: ControlStatements
+
+ColumnLimit: 131
+BreakBeforeBraces: WebKit
+AlignAfterOpenBracket: DontAlign
+AllowAllArgumentsOnNextLine: true
